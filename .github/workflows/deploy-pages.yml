@@ -34,6 +34,8 @@ jobs:
           --dart-define=USE_QA_DATA=${{ vars.USE_QA_DATA || 'true' }}
           --dart-define=API_BASE_URL=${{ vars.API_BASE_URL || '' }}
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
@@ -48,4 +50,3 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-
