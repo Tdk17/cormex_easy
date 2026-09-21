@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_environment.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive_shell.dart';
 
@@ -63,89 +65,217 @@ class _AdvertisePageState extends State<AdvertisePage> {
     return true;
   }
 
+  Future<void> _ensureAuthenticated(ApiClient api) async {
+    if (api.sessionToken?.isNotEmpty == true) {
+      try {
+        await api.runFunction('v1-auth-me');
+        return;
+      } on ApiException catch (error) {
+        if (error.type != ApiFailureType.unauthorized) rethrow;
+        await api.setSessionToken(null);
+      }
+    }
+
+    try {
+      final auth = await api.runFunction('v1-auth-sign-up', params: {
+        'name': ownerName.text.trim(),
+        'email': email.text.trim(),
+        'phone': phone.text.trim(),
+        'password': password.text,
+        'acceptedTermsVersion': '2026-09',
+        'acceptedPrivacyVersion': '2026-09',
+      });
+      await api.setSessionToken(auth['sessionToken']?.toString());
+    } on ApiException catch (error) {
+      if (!error.message.toLowerCase().contains('já existe')) rethrow;
+      final auth = await api.runFunction('v1-auth-login', params: {
+        'email': email.text.trim(),
+        'password': password.text,
+      });
+      await api.setSessionToken(auth['sessionToken']?.toString());
+    }
+  }
+
+  Future<Map<String, dynamic>> _findCategory(ApiClient api) async {
+    final categories = await api.runFunction(
+      'v1-categories-list',
+      params: {'limit': 50},
+    );
+    final categoryName = category.text.trim().toLowerCase();
+    final items = (categories['items'] as List? ?? [])
+        .whereType<Map>()
+        .map((item) => item.cast<String, dynamic>())
+        .toList();
+    final selected = items.cast<Map<String, dynamic>?>().firstWhere(
+          (item) =>
+              item?['name']?.toString().toLowerCase() == categoryName ||
+              item?['slug']?.toString().toLowerCase() == categoryName,
+          orElse: () => null,
+        );
+    if (selected == null) {
+      throw const ApiException(
+        ApiFailureType.badRequest,
+        'Categoria não encontrada. Digite o nome igual ao catálogo.',
+      );
+    }
+    return selected;
+  }
+
+  Map<String, dynamic> _providerPayload(Map<String, dynamic> selectedCategory) {
+    const providerTypes = {
+      'Autônomo': 'autonomous',
+      'MEI': 'mei',
+      'Empresa': 'company',
+    };
+    const operations = {
+      'Atuo sozinho': 'solo',
+      'Tenho equipe de 2 a 5 pessoas': 'team_2_5',
+      'Tenho equipe com mais de 5 pessoas': 'team_6_plus',
+    };
+    final cityParts = city.text
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+    final cityName = cityParts.isEmpty ? '' : cityParts.first;
+    final stateCode = cityParts.length > 1 ? cityParts.last.toUpperCase() : 'SC';
+    return {
+      'providerType': providerTypes[providerType] ?? 'autonomous',
+      'operationProfile': operations[operation] ?? 'solo',
+      'displayName': businessName.text.trim(),
+      'categoryPublicId': selectedCategory['publicId'],
+      'description': description.text.trim(),
+      'whatsapp': whatsapp.text.trim(),
+      'location': {'city': cityName, 'state': stateCode},
+      'serviceArea': {
+        'serviceMode': 'customer_address',
+        'servedCities': [cityName],
+      },
+      'availability': {
+        'type': open24Hours ? 'always_24h' : 'business_hours',
+        'isOpen24Hours': open24Hours,
+      },
+    };
+  }
+
+  Future<String> _saveProvider(
+    ApiClient api,
+    Map<String, dynamic> payload,
+  ) async {
+    final mine = await api.runFunction('v1-provider-profile-get-mine');
+    final existing = (mine['provider'] as Map?)?.cast<String, dynamic>();
+    if (existing == null) {
+      final created = await api.runFunction(
+        'v1-provider-profile-create-draft',
+        params: payload,
+      );
+      final provider = (created['provider'] as Map?)?.cast<String, dynamic>();
+      return provider?['publicId']?.toString() ?? '';
+    }
+
+    final providerPublicId = existing['publicId']?.toString() ?? '';
+    await api.runFunction('v1-provider-profile-update', params: {
+      ...payload,
+      'providerPublicId': providerPublicId,
+    });
+    return providerPublicId;
+  }
+
+  Future<String?> _activatePlan(ApiClient api, String providerPublicId) async {
+    final response = await api.runFunction(
+      'v1-plans-eligible',
+      params: {'providerPublicId': providerPublicId},
+    );
+    final plans = (response['plans'] as List? ?? [])
+        .whereType<Map>()
+        .map((item) => item.cast<String, dynamic>())
+        .toList();
+    final plan = plans.cast<Map<String, dynamic>?>().firstWhere(
+          (item) => item?['code']?.toString() == selectedPlan,
+          orElse: () => null,
+        );
+    if (plan == null) {
+      throw const ApiException(
+        ApiFailureType.badRequest,
+        'O plano selecionado não está disponível para este perfil.',
+      );
+    }
+
+    final result = await api.runFunction('v1-subscriptions-create', params: {
+      'providerPublicId': providerPublicId,
+      'planPublicId': plan['publicId'],
+      'billingCycle': plan['billingCycle'] ?? 'monthly',
+      if (selectedPlan == 'pro') ...{
+        'useTrial': true,
+        'paymentMethod': 'credit_card',
+        'returnUrl': Uri.base
+            .replace(query: null, fragment: '/meu-anuncio')
+            .toString(),
+        'idempotencyKey': 'onboarding-$providerPublicId-$selectedPlan',
+      },
+    });
+    final subscription =
+        (result['subscription'] as Map?)?.cast<String, dynamic>() ?? {};
+    final status = subscription['status']?.toString();
+    if (status == 'active' || status == 'trial') {
+      await api.runFunction('v1-provider-profile-publish', params: {
+        'providerPublicId': providerPublicId,
+      });
+      return null;
+    }
+    final payment = (result['payment'] as Map?)?.cast<String, dynamic>();
+    return payment?['checkoutUrl']?.toString();
+  }
+
   Future<void> _continue() async {
     if (!_validateStep()) return;
     if (step < 3) {
       setState(() => step++);
       return;
     }
+
     setState(() => submitting = true);
     final environment = getIt<AppEnvironment>();
+    var message = 'Fluxo QA concluído. Nenhum anúncio real foi publicado.';
     try {
       if (!environment.useQaData) {
         final api = getIt<ApiClient>();
-        final auth = await api.runFunction('v1-auth-sign-up', params: {
-          'name': ownerName.text.trim(),
-          'email': email.text.trim(),
-          'phone': phone.text.trim(),
-          'password': password.text,
-          'acceptedTermsVersion': '2026-09',
-          'acceptedPrivacyVersion': '2026-09',
-        });
-        await api.setSessionToken(auth['sessionToken']?.toString());
-
-        final categories = await api.runFunction(
-          'v1-categories-list',
-          params: {'limit': 50},
+        await _ensureAuthenticated(api);
+        final selectedCategory = await _findCategory(api);
+        final providerPublicId = await _saveProvider(
+          api,
+          _providerPayload(selectedCategory),
         );
-        final categoryName = category.text.trim().toLowerCase();
-        final categoryItems = (categories['items'] as List? ?? [])
-            .whereType<Map>()
-            .map((item) => item.cast<String, dynamic>())
-            .toList();
-        final selectedCategory = categoryItems.cast<Map<String, dynamic>?>().firstWhere(
-              (item) =>
-                  item?['name']?.toString().toLowerCase() == categoryName ||
-                  item?['slug']?.toString().toLowerCase() == categoryName,
-              orElse: () => null,
-            );
-        if (selectedCategory == null) {
-          throw StateError('Categoria não encontrada');
+        if (providerPublicId.isEmpty) {
+          throw const ApiException(
+            ApiFailureType.unknown,
+            'O backend não retornou o identificador do anúncio.',
+          );
         }
 
-        const providerTypes = {
-          'Autônomo': 'autonomous',
-          'MEI': 'mei',
-          'Empresa': 'company',
-        };
-        const operations = {
-          'Atuo sozinho': 'solo',
-          'Tenho equipe de 2 a 5 pessoas': 'team_2_5',
-          'Tenho equipe com mais de 5 pessoas': 'team_6_plus',
-        };
-        final cityParts = city.text.split(',');
-        await api.runFunction('v1-provider-profile-create-draft', params: {
-          'providerType': providerTypes[providerType] ?? 'autonomous',
-          'operationProfile': operations[operation] ?? 'solo',
-          'displayName': businessName.text.trim(),
-          'categoryPublicId': selectedCategory['publicId'],
-          'description': description.text.trim(),
-          'whatsapp': whatsapp.text.trim(),
-          'location': {
-            'city': cityParts.first.trim(),
-            'state': cityParts.length > 1 ? cityParts.last.trim() : 'SC',
-          },
-          'serviceArea': {
-            'serviceMode': 'customer_address',
-            'servedCities': [cityParts.first.trim()],
-          },
-          'availability': {
-            'type': open24Hours ? 'always_24h' : 'business_hours',
-            'isOpen24Hours': open24Hours,
-          },
-        });
+        final checkoutUrl = await _activatePlan(api, providerPublicId);
+        if (checkoutUrl?.isNotEmpty == true) {
+          final opened = await launchUrl(
+            Uri.parse(checkoutUrl!),
+            webOnlyWindowName: '_blank',
+          );
+          message = opened
+              ? 'Seu anúncio foi salvo. Conclua o pagamento na nova aba para ativar o plano Pro.'
+              : 'Seu anúncio foi salvo, mas não foi possível abrir o pagamento. Acesse Meu anúncio para continuar.';
+        } else {
+          message = 'Cadastro concluído e anúncio publicado com sucesso.';
+        }
       } else {
         await Future<void>.delayed(const Duration(milliseconds: 500));
       }
+
       if (!mounted) return;
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
           icon: const Icon(Icons.check_circle, color: AppColors.success, size: 48),
-          title: const Text('Cadastro preparado'),
-          content: Text(environment.useQaData
-              ? 'Fluxo QA concluído. Nenhum anúncio real foi publicado.'
-              : 'Seus dados foram enviados. Continue pelo fluxo seguro do backend.'),
+          title: const Text('Cadastro concluído'),
+          content: Text(message),
           actions: [
             FilledButton(
               onPressed: () => Navigator.pop(context),
@@ -155,10 +285,13 @@ class _AdvertisePageState extends State<AdvertisePage> {
         ),
       );
       if (mounted) context.go('/meu-anuncio');
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
+        final message = error is ApiException
+            ? error.message
+            : 'Não foi possível salvar o anúncio agora.';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível salvar o anúncio agora.')),
+          SnackBar(content: Text(message)),
         );
       }
     } finally {
