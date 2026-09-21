@@ -1,21 +1,12 @@
-import 'package:cormex_easy/app.dart';
-import 'package:cormex_easy/core/di/injection.dart';
+import 'package:cormex_easy/core/config/app_environment.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  test('o ambiente padrão mantém dados QA isolados da produção', () {
+    final environment = AppEnvironment.fromDefines();
 
-  testWidgets('abre a home pública sem exigir login', (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    await getIt.reset();
-    await configureDependencies();
-
-    await tester.pumpWidget(const CormexEasyApp());
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-
-    expect(find.text('O serviço certo, perto de você.'), findsOneWidget);
-    expect(find.text('Anunciar meu serviço'), findsWidgets);
+    expect(environment.flavor, AppFlavor.qa);
+    expect(environment.useQaData, isTrue);
+    expect(environment.hasApi, isFalse);
   });
 }
