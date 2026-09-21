@@ -280,12 +280,23 @@ class _Hero extends StatelessWidget {
                   onChooseCity: onChooseCity,
                   compact: compact,
                 );
-                if (!split) return content;
+                if (!split) {
+                  return Column(
+                    children: [
+                      content,
+                      SizedBox(height: compact ? 18 : 24),
+                      _HeroPeopleVisual(compact: compact),
+                    ],
+                  );
+                }
                 return Row(
                   children: [
                     Expanded(flex: 7, child: content),
-                    const SizedBox(width: 46),
-                    const Expanded(flex: 4, child: _HeroHighlights()),
+                    const SizedBox(width: 34),
+                    const Expanded(
+                      flex: 5,
+                      child: _HeroPeopleVisual(),
+                    ),
                   ],
                 );
               },
@@ -421,71 +432,90 @@ class _HeroContent extends StatelessWidget {
   }
 }
 
-class _HeroHighlights extends StatelessWidget {
-  const _HeroHighlights();
+class _HeroPeopleVisual extends StatelessWidget {
+  const _HeroPeopleVisual({this.compact = false});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .09),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: Colors.white.withValues(alpha: .13)),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final height = compact ? 190.0 : 310.0;
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: Stack(
         children: [
-          Text(
-            'Feito para aproximar',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .13),
+                borderRadius: BorderRadius.circular(compact ? 22 : 28),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: .12),
+                ),
+              ),
             ),
           ),
-          SizedBox(height: 18),
-          _Highlight(icon: Icons.near_me_outlined, text: 'Serviços perto de você'),
-          SizedBox(height: 14),
-          _Highlight(icon: Icons.verified_user_outlined, text: 'Perfis claros e verificados'),
-          SizedBox(height: 14),
-          _Highlight(icon: Icons.chat_bubble_outline, text: 'Contato direto pelo WhatsApp'),
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(compact ? 22 : 28),
+              child: Image.asset(
+                'assets/images/hero-profissional-cliente.webp',
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                filterQuality: FilterQuality.high,
+                semanticLabel:
+                    'Profissional e cliente satisfeita se cumprimentando',
+              ),
+            ),
+          ),
+          Positioned(
+            left: compact ? 10 : 14,
+            bottom: compact ? 10 : 14,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 11 : 13,
+                vertical: compact ? 7 : 9,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.ink.withValues(alpha: .88),
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: .18),
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x44000000),
+                    blurRadius: 14,
+                    offset: Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.handshake_outlined,
+                    color: AppColors.gold,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    compact
+                        ? 'Serviço concluído'
+                        : 'Confiança em cada serviço',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: compact ? 11 : 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
-    );
-  }
-}
-
-class _Highlight extends StatelessWidget {
-  const _Highlight({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppColors.gold.withValues(alpha: .16),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: AppColors.gold, size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

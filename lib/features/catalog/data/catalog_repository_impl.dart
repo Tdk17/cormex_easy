@@ -41,7 +41,9 @@ class CatalogRepositoryImpl implements CatalogRepository {
       categories: categories,
       providers: providers,
       bannerTitle: banner['title']?.toString() ?? 'Serviços perto de você',
-      bannerSubtitle: banner['subtitle']?.toString() ?? '',
+      bannerSubtitle: banner['subtitle']?.toString().trim().isNotEmpty == true
+          ? banner['subtitle'].toString()
+          : 'Profissionais de confiança para resolver o que você precisa.',
       reviewsEnabled: flags['reviews'] == true,
     );
   }
