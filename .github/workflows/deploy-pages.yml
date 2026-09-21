@@ -26,22 +26,41 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
-      - name: Build web
-        # A configuração pública do BancoEasy é injetada pelas Variables do repositório.
+
+      - name: Build production
         run: >-
           flutter build web --release
+          --output=build/production
           --base-href=/cormex_easy/
-          --dart-define=APP_ENV=${{ vars.APP_ENV || 'qa' }}
-          --dart-define=USE_QA_DATA=${{ vars.USE_QA_DATA || 'false' }}
+          --dart-define=APP_ENV=production
+          --dart-define=USE_QA_DATA=false
           --dart-define=PARSE_SERVER_URL=${{ vars.PARSE_SERVER_URL || 'https://parseapi.back4app.com' }}
           --dart-define=PARSE_APPLICATION_ID=${{ vars.PARSE_APPLICATION_ID || '' }}
           --dart-define=PARSE_CLIENT_KEY=${{ vars.PARSE_CLIENT_KEY || '' }}
+
+      - name: Build QA
+        run: >-
+          flutter build web --release
+          --output=build/qa
+          --base-href=/cormex_easy/qa/
+          --dart-define=APP_ENV=qa
+          --dart-define=USE_QA_DATA=${{ vars.QA_USE_QA_DATA || 'false' }}
+          --dart-define=PARSE_SERVER_URL=${{ vars.QA_PARSE_SERVER_URL || vars.PARSE_SERVER_URL || 'https://parseapi.back4app.com' }}
+          --dart-define=PARSE_APPLICATION_ID=${{ vars.QA_PARSE_APPLICATION_ID || vars.PARSE_APPLICATION_ID || '' }}
+          --dart-define=PARSE_CLIENT_KEY=${{ vars.QA_PARSE_CLIENT_KEY || vars.PARSE_CLIENT_KEY || '' }}
+
+      - name: Assemble GitHub Pages artifact
+        run: |
+          mkdir -p build/pages/qa
+          cp -R build/production/. build/pages/
+          cp -R build/qa/. build/pages/qa/
+
       - uses: actions/configure-pages@v5
         with:
           enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: build/web
+          path: build/pages
 
   deploy:
     environment:

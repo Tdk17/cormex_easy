@@ -11,7 +11,12 @@ class CatalogRepositoryImpl implements CatalogRepository {
   final ApiClient apiClient;
 
   @override
-  Future<CatalogHomeData> loadHome({String? city, double? lat, double? lng}) async {
+  Future<CatalogHomeData> loadHome({
+    String? city,
+    String? state,
+    double? lat,
+    double? lng,
+  }) async {
     if (environment.useQaData) {
       await Future<void>.delayed(const Duration(milliseconds: 350));
       return CatalogHomeData(
@@ -24,6 +29,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
     }
     final json = await apiClient.runFunction('v1-home-get', params: {
       if (city != null && city.isNotEmpty) 'city': city,
+      if (state != null && state.isNotEmpty) 'state': state,
       if (lat != null) 'latitude': lat,
       if (lng != null) 'longitude': lng,
     });
@@ -66,6 +72,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
     String query = '',
     String? categorySlug,
     String? city,
+    String? state,
   }) async {
     if (environment.useQaData) {
       final needle = query.trim().toLowerCase();
@@ -84,6 +91,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
       if (categorySlug != null && categorySlug.isNotEmpty)
         'categorySlug': categorySlug,
       if (city != null && city.isNotEmpty) 'city': city,
+      if (state != null && state.isNotEmpty) 'state': state,
     });
     return (json['items'] as List? ?? [])
         .whereType<Map>()

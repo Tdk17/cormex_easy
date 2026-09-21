@@ -20,7 +20,10 @@ class CatalogStore {
   final favoriteIds = signal<Set<String>>(<String>{});
   final query = signal('');
   final selectedCategory = signal<String?>(null);
-  final city = signal('Blumenau, SC');
+  final city = signal('Blumenau');
+  final state = signal('SC');
+
+  String get locationLabel => '${city.value}, ${state.value}';
   final locationMessage = signal('Informe sua região ou use sua localização');
   final errorMessage = signal<String?>(null);
 
@@ -33,7 +36,10 @@ class CatalogStore {
     phase.value = refresh ? LoadPhase.refreshing : LoadPhase.loading;
     errorMessage.value = null;
     try {
-      final data = await _repository.loadHome(city: city.value);
+      final data = await _repository.loadHome(
+        city: city.value,
+        state: state.value,
+      );
       home.value = data;
       visibleProviders.value = data.providers;
       phase.value = data.providers.isEmpty ? LoadPhase.empty : LoadPhase.success;
@@ -52,6 +58,7 @@ class CatalogStore {
         query: query.value,
         categorySlug: selectedCategory.value,
         city: city.value,
+        state: state.value,
       );
       visibleProviders.value = items;
       phase.value = items.isEmpty ? LoadPhase.empty : LoadPhase.success;
@@ -93,8 +100,10 @@ class CatalogStore {
 
   Future<void> setCity(String value) async {
     if (value.trim().isEmpty) return;
-    city.value = value.trim();
-    locationMessage.value = 'Resultados para ${city.value}';
+    final parts = value.split(',').map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
+    city.value = parts.first;
+    if (parts.length > 1) state.value = parts.last.toUpperCase();
+    locationMessage.value = 'Resultados para $locationLabel';
     await loadHome(refresh: true);
   }
 

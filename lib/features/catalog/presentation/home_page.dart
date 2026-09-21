@@ -34,7 +34,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _chooseCity() async {
-    final controller = TextEditingController(text: store.city.value);
+    final controller = TextEditingController(text: store.locationLabel);
     final city = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -106,7 +106,7 @@ class _HomePageState extends State<HomePage> {
                         'Encontre profissionais locais com rapidez e segurança.',
                     controller: _searchController,
                     onSearch: _submitSearch,
-                    city: store.city.value,
+                    city: store.locationLabel,
                     locationMessage: store.locationMessage.value,
                     onCurrentLocation: store.useCurrentLocation,
                     onChooseCity: _chooseCity,
