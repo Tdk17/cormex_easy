@@ -69,6 +69,14 @@ class _AccountPageState extends State<AccountPage> {
     final address = user?['email']?.toString() ?? '';
     if (address.isEmpty) return;
     try {
+      if (getIt<AppEnvironment>().useQaData) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Recuperação validada no ambiente QA.')),
+          );
+        }
+        return;
+      }
       await getIt<ApiClient>().runFunction(
         'v1-auth-request-password-reset',
         params: {'email': address},
@@ -161,6 +169,20 @@ class _AccountPageState extends State<AccountPage> {
                           ),
                           if (signedIn && (user!['phone']?.toString().isNotEmpty ?? false))
                             Text(user!['phone'].toString()),
+                          if (signedIn) ...[
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              children: [
+                                Chip(label: Text(user!['accountStatus']?.toString() ?? 'active')),
+                                if (user!['hasProviderProfile'] == true)
+                                  const Chip(label: Text('Prestador')),
+                                for (final role in (user!['roles'] as List? ?? const []))
+                                  Chip(label: Text(role.toString())),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

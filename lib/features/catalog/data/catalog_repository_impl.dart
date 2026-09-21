@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
 import '../domain/catalog_models.dart';
@@ -43,6 +45,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
         .toList();
     final banner = (json['banner'] as Map?)?.cast<String, dynamic>() ?? {};
     final flags = (json['featureFlags'] as Map?)?.cast<String, dynamic>() ?? {};
+    _trackImpressions(providers);
     return CatalogHomeData(
       categories: categories,
       providers: providers,
@@ -93,9 +96,35 @@ class CatalogRepositoryImpl implements CatalogRepository {
       if (city != null && city.isNotEmpty) 'city': city,
       if (state != null && state.isNotEmpty) 'state': state,
     });
-    return (json['items'] as List? ?? [])
+    final providers = (json['items'] as List? ?? [])
         .whereType<Map>()
         .map((e) => ProviderProfile.fromJson(e.cast<String, dynamic>()))
         .toList();
+    _trackImpressions(providers);
+    return providers;
+  }
+
+  void _trackImpressions(List<ProviderProfile> providers) {
+    final batch = DateTime.now().microsecondsSinceEpoch;
+    for (var index = 0; index < providers.length; index++) {
+      unawaited(_trackImpression(providers[index], batch, index));
+    }
+  }
+
+  Future<void> _trackImpression(
+    ProviderProfile provider,
+    int batch,
+    int index,
+  ) async {
+    try {
+      await apiClient.runFunction('v1-providers-track-event', params: {
+        'providerPublicId': provider.id,
+        'eventType': 'card_impression',
+        'eventId': 'card_impression_${provider.id}_${batch}_$index',
+        'source': 'web',
+      });
+    } catch (_) {
+      // Analytics não deve bloquear o catálogo.
+    }
   }
 }

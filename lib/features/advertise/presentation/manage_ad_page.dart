@@ -5,6 +5,7 @@ import '../../../core/config/app_environment.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/platform/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive_shell.dart';
 
@@ -22,6 +23,7 @@ class _ManageAdPageState extends State<ManageAdPage> {
   Map<String, dynamic>? provider;
   Map<String, dynamic>? subscription;
   Map<String, dynamic> totals = const {};
+  List<Map<String, dynamic>> portfolio = const [];
   bool analyticsNotIncluded = false;
 
   @override
@@ -50,6 +52,7 @@ class _ManageAdPageState extends State<ManageAdPage> {
         'status': 'active',
         'plan': {'name': 'Pro', 'code': 'pro'},
       };
+      portfolio = const [];
       totals = {
         'impressions': 1280,
         'profileViews': 164,
@@ -85,6 +88,23 @@ class _ManageAdPageState extends State<ManageAdPage> {
         } catch (_) {
           totals = const {};
         }
+        final slug = provider?['slug']?.toString() ?? '';
+        if (provider?['status'] == 'published' && slug.isNotEmpty) {
+          try {
+            final detail = await api.runFunction(
+              'v1-providers-detail',
+              params: {'slug': slug},
+            );
+            final publicProvider =
+                (detail['provider'] as Map?)?.cast<String, dynamic>() ?? {};
+            portfolio = (publicProvider['portfolio'] as List? ?? [])
+                .whereType<Map>()
+                .map((item) => item.cast<String, dynamic>())
+                .toList();
+          } catch (_) {
+            portfolio = const [];
+          }
+        }
       }
     } on ApiException catch (exception) {
       error = exception.message;
@@ -93,6 +113,79 @@ class _ManageAdPageState extends State<ManageAdPage> {
       }
     }
     if (mounted) setState(() => loading = false);
+  }
+
+  Future<void> _uploadPortfolio() async {
+    final providerId = provider?['publicId']?.toString() ?? '';
+    if (providerId.isEmpty) return;
+    setState(() => acting = true);
+    try {
+      final prepared = await getIt<ApiClient>().runFunction(
+        'v1-provider-portfolio-upload-prepare',
+        params: {'providerPublicId': providerId},
+      );
+      final upload =
+          (prepared['upload'] as Map?)?.cast<String, dynamic>() ?? {};
+      final image = await pickPortfolioImage();
+      if (image == null) return;
+      final maxBytes = num.tryParse(upload['maxBytes']?.toString() ?? '') ?? 0;
+      if (maxBytes > 0 && image.sizeBytes > maxBytes) {
+        throw const ApiException(
+          ApiFailureType.badRequest,
+          'A imagem ultrapassa o tamanho permitido pelo plano.',
+        );
+      }
+      final result = await getIt<ApiClient>().runFunction(
+        'v1-provider-portfolio-upload',
+        params: {
+          'providerPublicId': providerId,
+          'fileName': image.name,
+          'mimeType': image.mimeType,
+          'sizeBytes': image.sizeBytes,
+          'base64': image.base64,
+        },
+      );
+      final item = (result['item'] as Map?)?.cast<String, dynamic>();
+      if (item != null) portfolio = [...portfolio, item];
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Imagem adicionada ao portfólio.')),
+      );
+      setState(() {});
+    } on ApiException catch (exception) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(exception.message)),
+      );
+    } finally {
+      if (mounted) setState(() => acting = false);
+    }
+  }
+
+  Future<void> _deletePortfolio(Map<String, dynamic> item) async {
+    final itemId = item['publicId']?.toString() ?? '';
+    if (itemId.isEmpty) return;
+    setState(() => acting = true);
+    try {
+      await getIt<ApiClient>().runFunction(
+        'v1-provider-portfolio-delete',
+        params: {
+          'providerPublicId': provider!['publicId'],
+          'itemPublicId': itemId,
+        },
+      );
+      portfolio = portfolio
+          .where((candidate) => candidate['publicId'] != itemId)
+          .toList();
+      if (mounted) setState(() {});
+    } on ApiException catch (exception) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(exception.message)),
+      );
+    } finally {
+      if (mounted) setState(() => acting = false);
+    }
   }
 
   Future<void> _changeStatus() async {
@@ -122,6 +215,31 @@ class _ManageAdPageState extends State<ManageAdPage> {
         ),
       );
       setState(() {});
+    } on ApiException catch (exception) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(exception.message)),
+      );
+    } finally {
+      if (mounted) setState(() => acting = false);
+    }
+  }
+
+  Future<void> _reactivateSubscription() async {
+    setState(() => acting = true);
+    try {
+      final result = await getIt<ApiClient>().runFunction(
+        'v1-subscriptions-reactivate',
+        params: {'providerPublicId': provider!['publicId']},
+      );
+      subscription =
+          (result['subscription'] as Map?)?.cast<String, dynamic>();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Assinatura reativada.')),
+        );
+        setState(() {});
+      }
     } on ApiException catch (exception) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -316,8 +434,79 @@ class _ManageAdPageState extends State<ManageAdPage> {
                               onPressed: acting ? null : _cancelSubscription,
                               child: const Text('Cancelar assinatura'),
                             ),
+                          if (subscriptionStatus == 'cancelled')
+                            TextButton(
+                              onPressed: acting ? null : _reactivateSubscription,
+                              child: const Text('Reativar assinatura'),
+                            ),
                         ],
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text('Logo e portfólio', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+                          ),
+                          FilledButton.tonalIcon(
+                            onPressed: acting ? null : _uploadPortfolio,
+                            icon: const Icon(Icons.add_photo_alternate_outlined),
+                            label: const Text('Adicionar foto'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (portfolio.isEmpty)
+                        const Text(
+                          'Adicione fotos reais dos seus serviços. Formatos aceitos: JPG, PNG e WebP.',
+                          style: TextStyle(color: AppColors.muted),
+                        )
+                      else
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: portfolio.map((item) {
+                            return Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Image.network(
+                                    item['url']?.toString() ?? '',
+                                    width: 150,
+                                    height: 110,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => const SizedBox(
+                                      width: 150,
+                                      height: 110,
+                                      child: ColoredBox(
+                                        color: Color(0xFFF0E8EA),
+                                        child: Icon(Icons.broken_image_outlined),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: 4,
+                                  top: 4,
+                                  child: IconButton.filled(
+                                    onPressed: acting ? null : () => _deletePortfolio(item),
+                                    tooltip: 'Remover foto',
+                                    icon: const Icon(Icons.delete_outline, size: 18),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
                     ],
                   ),
                 ),

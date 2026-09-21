@@ -30,6 +30,8 @@ Future<void> configureDependencies() async {
         getIt<CatalogRepository>(),
         getIt<FavoritesService>(),
         getIt<LocationService>(),
+        environment,
+        getIt<ApiClient>(),
       ),
     )
     ..registerLazySingleton(

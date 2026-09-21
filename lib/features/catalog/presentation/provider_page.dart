@@ -53,9 +53,7 @@ class _ProviderPageState extends State<ProviderPage> {
   }
 
   Future<void> _toggleFavorite(ProviderProfile provider) async {
-    final adding = !store.isFavorite(provider.id);
     await store.toggleFavorite(provider.id);
-    if (adding) await _track('favorite_add', provider);
   }
 
   Future<void> _openWhatsApp(ProviderProfile provider) async {

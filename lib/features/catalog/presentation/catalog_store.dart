@@ -1,5 +1,8 @@
 import 'package:signals/signals.dart';
 
+import '../../../core/config/app_environment.dart';
+import '../../../core/network/api_client.dart';
+
 import '../data/favorites_service.dart';
 import '../data/location_service.dart';
 import '../domain/catalog_models.dart';
@@ -8,11 +11,19 @@ import '../domain/catalog_repository.dart';
 enum LoadPhase { initial, loading, success, empty, error, refreshing }
 
 class CatalogStore {
-  CatalogStore(this._repository, this._favorites, this._locationService);
+  CatalogStore(
+    this._repository,
+    this._favorites,
+    this._locationService,
+    this._environment,
+    this._apiClient,
+  );
 
   final CatalogRepository _repository;
   final FavoritesService _favorites;
   final LocationService _locationService;
+  final AppEnvironment _environment;
+  final ApiClient _apiClient;
 
   final phase = signal(LoadPhase.initial);
   final home = signal<CatalogHomeData?>(null);
@@ -109,9 +120,22 @@ class CatalogStore {
 
   Future<void> toggleFavorite(String providerId) async {
     final next = Set<String>.from(favoriteIds.value);
-    next.contains(providerId) ? next.remove(providerId) : next.add(providerId);
+    final adding = !next.contains(providerId);
+    adding ? next.add(providerId) : next.remove(providerId);
     favoriteIds.value = next;
     await _favorites.save(next);
+    if (adding && !_environment.useQaData && _environment.hasApi) {
+      try {
+        await _apiClient.runFunction('v1-providers-track-event', params: {
+          'providerPublicId': providerId,
+          'eventType': 'favorite_add',
+          'eventId': 'favorite_add_${providerId}_${DateTime.now().microsecondsSinceEpoch}',
+          'source': 'web',
+        });
+      } catch (_) {
+        // Analytics não deve bloquear o favorito.
+      }
+    }
   }
 
   bool isFavorite(String providerId) => favoriteIds.value.contains(providerId);
