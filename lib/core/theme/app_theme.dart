@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const wine = Color(0xFF7A1830);
   static const wineDark = Color(0xFF4B0D1D);
+  static const wineSoft = Color(0xFFB35B70);
   static const gold = Color(0xFFF2B84B);
+  static const goldSoft = Color(0xFFFFE4A8);
   static const ink = Color(0xFF211A1D);
   static const muted = Color(0xFF6F6569);
-  static const canvas = Color(0xFFF8F6F4);
+  static const canvas = Color(0xFFFBF7F7);
+  static const surfaceSoft = Color(0xFFFFFCFB);
   static const success = Color(0xFF247A52);
 }
 
@@ -45,7 +48,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Colors.white.withValues(alpha: .96),
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -68,11 +71,12 @@ class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: Colors.white,
-        elevation: 0,
+        color: Colors.white.withValues(alpha: .96),
+        elevation: 1,
+        shadowColor: AppColors.wine.withValues(alpha: .08),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
-          side: const BorderSide(color: Color(0xFFECE6E8)),
+          side: const BorderSide(color: Color(0xFFEADDE1)),
         ),
       ),
       snackBarTheme: const SnackBarThemeData(
@@ -81,4 +85,3 @@ class AppTheme {
     );
   }
 }
-

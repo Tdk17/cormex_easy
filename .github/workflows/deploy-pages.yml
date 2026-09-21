@@ -31,8 +31,10 @@ jobs:
           flutter build web --release
           --base-href=/cormex_easy/
           --dart-define=APP_ENV=${{ vars.APP_ENV || 'qa' }}
-          --dart-define=USE_QA_DATA=${{ vars.USE_QA_DATA || 'true' }}
-          --dart-define=API_BASE_URL=${{ vars.API_BASE_URL || '' }}
+          --dart-define=USE_QA_DATA=${{ vars.USE_QA_DATA || 'false' }}
+          --dart-define=PARSE_SERVER_URL=${{ vars.PARSE_SERVER_URL || 'https://parseapi.back4app.com' }}
+          --dart-define=PARSE_APPLICATION_ID=${{ vars.PARSE_APPLICATION_ID || '' }}
+          --dart-define=PARSE_CLIENT_KEY=${{ vars.PARSE_CLIENT_KEY || '' }}
       - uses: actions/configure-pages@v5
         with:
           enablement: true

@@ -22,10 +22,10 @@ class CatalogRepositoryImpl implements CatalogRepository {
         reviewsEnabled: true,
       );
     }
-    final json = await apiClient.getJson('v1/home', query: {
+    final json = await apiClient.runFunction('v1-home-get', params: {
       if (city != null && city.isNotEmpty) 'city': city,
-      if (lat != null) 'lat': '$lat',
-      if (lng != null) 'lng': '$lng',
+      if (lat != null) 'latitude': lat,
+      if (lng != null) 'longitude': lng,
     });
     final categories = (json['categories'] as List? ?? [])
         .whereType<Map>()
@@ -51,7 +51,10 @@ class CatalogRepositoryImpl implements CatalogRepository {
     if (environment.useQaData) {
       return QaCatalogData.providers.where((p) => p.slug == slug).firstOrNull;
     }
-    final json = await apiClient.getJson('v1/providers/$slug');
+    final json = await apiClient.runFunction(
+      'v1-providers-detail',
+      params: {'slug': slug},
+    );
     final data = (json['provider'] as Map?)?.cast<String, dynamic>();
     return data == null ? null : ProviderProfile.fromJson(data);
   }
@@ -74,10 +77,10 @@ class CatalogRepositoryImpl implements CatalogRepository {
         return matchesCategory && (needle.isEmpty || haystack.contains(needle));
       }).toList();
     }
-    final json = await apiClient.getJson('v1/providers', query: {
-      if (query.isNotEmpty) 'q': query,
+    final json = await apiClient.runFunction('v1-providers-search', params: {
+      if (query.isNotEmpty) 'query': query,
       if (categorySlug != null && categorySlug.isNotEmpty)
-        'category': categorySlug,
+        'categorySlug': categorySlug,
       if (city != null && city.isNotEmpty) 'city': city,
     });
     return (json['items'] as List? ?? [])

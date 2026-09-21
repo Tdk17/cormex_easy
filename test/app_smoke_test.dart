@@ -8,5 +8,6 @@ void main() {
     expect(environment.flavor, AppFlavor.qa);
     expect(environment.useQaData, isTrue);
     expect(environment.hasApi, isFalse);
+    expect(environment.parseServerUrl, 'https://parseapi.back4app.com');
   });
 }

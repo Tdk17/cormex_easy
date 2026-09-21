@@ -73,20 +73,66 @@ class _AdvertisePageState extends State<AdvertisePage> {
     final environment = getIt<AppEnvironment>();
     try {
       if (!environment.useQaData) {
-        await getIt<ApiClient>().postJson('v1/provider-profile/draft', body: {
-          'providerType': providerType,
-          'operationProfile': operation,
+        final api = getIt<ApiClient>();
+        final auth = await api.runFunction('v1-auth-sign-up', params: {
+          'name': ownerName.text.trim(),
+          'email': email.text.trim(),
+          'phone': phone.text.trim(),
+          'password': password.text,
+          'acceptedTermsVersion': '2026-09',
+          'acceptedPrivacyVersion': '2026-09',
+        });
+        await api.setSessionToken(auth['sessionToken']?.toString());
+
+        final categories = await api.runFunction(
+          'v1-categories-list',
+          params: {'limit': 50},
+        );
+        final categoryName = category.text.trim().toLowerCase();
+        final categoryItems = (categories['items'] as List? ?? [])
+            .whereType<Map>()
+            .map((item) => item.cast<String, dynamic>())
+            .toList();
+        final selectedCategory = categoryItems.cast<Map<String, dynamic>?>().firstWhere(
+              (item) =>
+                  item?['name']?.toString().toLowerCase() == categoryName ||
+                  item?['slug']?.toString().toLowerCase() == categoryName,
+              orElse: () => null,
+            );
+        if (selectedCategory == null) {
+          throw StateError('Categoria não encontrada');
+        }
+
+        const providerTypes = {
+          'Autônomo': 'autonomous',
+          'MEI': 'mei',
+          'Empresa': 'company',
+        };
+        const operations = {
+          'Atuo sozinho': 'solo',
+          'Tenho equipe de 2 a 5 pessoas': 'team_2_5',
+          'Tenho equipe com mais de 5 pessoas': 'team_6_plus',
+        };
+        final cityParts = city.text.split(',');
+        await api.runFunction('v1-provider-profile-create-draft', params: {
+          'providerType': providerTypes[providerType] ?? 'autonomous',
+          'operationProfile': operations[operation] ?? 'solo',
           'displayName': businessName.text.trim(),
-          'categorySearch': category.text.trim(),
+          'categoryPublicId': selectedCategory['publicId'],
           'description': description.text.trim(),
           'whatsapp': whatsapp.text.trim(),
-          'city': city.text.trim(),
-          'account': {
-            'name': ownerName.text.trim(),
-            'email': email.text.trim(),
-            'phone': phone.text.trim(),
+          'location': {
+            'city': cityParts.first.trim(),
+            'state': cityParts.length > 1 ? cityParts.last.trim() : 'SC',
           },
-          'selectedPlanId': selectedPlan,
+          'serviceArea': {
+            'serviceMode': 'customer_address',
+            'servedCities': [cityParts.first.trim()],
+          },
+          'availability': {
+            'type': open24Hours ? 'always_24h' : 'business_hours',
+            'isOpen24Hours': open24Hours,
+          },
         });
       } else {
         await Future<void>.delayed(const Duration(milliseconds: 500));

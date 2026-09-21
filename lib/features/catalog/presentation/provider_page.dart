@@ -13,6 +13,7 @@ import '../../../core/widgets/state_view.dart';
 import '../domain/catalog_models.dart';
 import '../domain/catalog_repository.dart';
 import 'catalog_store.dart';
+import 'catalog_widgets.dart';
 
 class ProviderPage extends StatefulWidget {
   const ProviderPage({required this.slug, super.key});
@@ -93,9 +94,17 @@ class _ProviderPageState extends State<ProviderPage> {
     final environment = getIt<AppEnvironment>();
     if (!environment.useQaData) {
       try {
-        await getIt<ApiClient>().postJson('v1/reports', body: {
-          'providerId': provider.id,
-          'reason': reason,
+        const reasonCodes = {
+          'Informações falsas': 'false_information',
+          'Conteúdo impróprio': 'inappropriate_content',
+          'Golpe ou suspeita': 'suspected_scam',
+          'Número inválido': 'invalid_number',
+          'Serviço inexistente': 'nonexistent_service',
+          'Outro': 'other',
+        };
+        await getIt<ApiClient>().runFunction('v1-providers-report', params: {
+          'providerPublicId': provider.id,
+          'reason': reasonCodes[reason] ?? 'other',
         });
       } catch (_) {
         if (!mounted) return;
@@ -193,14 +202,27 @@ class _ProviderContent extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: provider.isPro ? AppColors.gold : const Color(0xFFF2E7EA),
-                          foregroundColor: AppColors.wine,
-                          child: Text(
-                            provider.displayName.substring(0, 1).toUpperCase(),
-                            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                        Container(
+                          width: 92,
+                          height: 92,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                              color: provider.isPro
+                                  ? AppColors.gold
+                                  : const Color(0xFFE6D9DD),
+                              width: 2,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x33000000),
+                                blurRadius: 16,
+                                offset: Offset(0, 8),
+                              ),
+                            ],
                           ),
+                          clipBehavior: Clip.antiAlias,
+                          child: ProviderPhoto(provider: provider),
                         ),
                         const SizedBox(width: 16),
                         Expanded(

@@ -21,7 +21,9 @@ flutter pub get
 flutter run -d chrome \
   --dart-define=APP_ENV=qa \
   --dart-define=USE_QA_DATA=true \
-  --dart-define=API_BASE_URL=https://qa-api.exemplo.com
+  --dart-define=PARSE_SERVER_URL=https://parseapi.back4app.com \
+  --dart-define=PARSE_APPLICATION_ID=seu_app_id \
+  --dart-define=PARSE_CLIENT_KEY=sua_client_key
 ```
 
 Produção:
@@ -31,7 +33,9 @@ flutter build web --release \
   --base-href=/cormex_easy/ \
   --dart-define=APP_ENV=production \
   --dart-define=USE_QA_DATA=false \
-  --dart-define=API_BASE_URL=https://api.exemplo.com
+  --dart-define=PARSE_SERVER_URL=https://parseapi.back4app.com \
+  --dart-define=PARSE_APPLICATION_ID=seu_app_id \
+  --dart-define=PARSE_CLIENT_KEY=sua_client_key
 ```
 
 Nenhum segredo deve ser enviado por `dart-define`: o Flutter Web é público. Tokens privados, chaves administrativas e credenciais do Mercado Pago pertencem exclusivamente ao backend.
@@ -44,7 +48,9 @@ O workflow `.github/workflows/deploy-pages.yml` publica a branch `main`. Enquant
 |---|---|
 | `APP_ENV` | `production` |
 | `USE_QA_DATA` | `false` |
-| `API_BASE_URL` | URL HTTPS da API |
+| `PARSE_SERVER_URL` | `https://parseapi.back4app.com` |
+| `PARSE_APPLICATION_ID` | Application ID do BancoEasy |
+| `PARSE_CLIENT_KEY` | Client Key do BancoEasy |
 
 Em **Settings → Pages**, selecione **GitHub Actions** como origem.
 
@@ -81,4 +87,3 @@ lib/
 ```
 
 © 2026 Genesys System. Todos os direitos reservados.
-

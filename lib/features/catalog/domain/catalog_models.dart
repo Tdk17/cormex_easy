@@ -8,10 +8,10 @@ class ServiceCategory {
 
   factory ServiceCategory.fromJson(Map<String, dynamic> json) {
     return ServiceCategory(
-      id: json['id']?.toString() ?? '',
+      id: (json['publicId'] ?? json['id'])?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       slug: json['slug']?.toString() ?? '',
-      iconKey: json['icon']?.toString() ?? 'services',
+      iconKey: (json['iconKey'] ?? json['icon'])?.toString() ?? 'services',
     );
   }
 
@@ -41,30 +41,45 @@ class ProviderProfile {
     this.rating,
     this.reviewCount = 0,
     this.distanceKm,
+    this.imageUrl,
   });
 
   factory ProviderProfile.fromJson(Map<String, dynamic> json) {
+    final location = (json['location'] as Map?)?.cast<String, dynamic>() ?? {};
+    final serviceArea =
+        (json['serviceArea'] as Map?)?.cast<String, dynamic>() ?? {};
+    final availability =
+        (json['availability'] as Map?)?.cast<String, dynamic>() ?? {};
     return ProviderProfile(
-      id: json['id']?.toString() ?? '',
+      id: (json['publicId'] ?? json['id'])?.toString() ?? '',
       slug: json['slug']?.toString() ?? '',
       displayName: json['displayName']?.toString() ?? '',
       category: ServiceCategory.fromJson(
         (json['category'] as Map?)?.cast<String, dynamic>() ?? {},
       ),
       description: json['description']?.toString() ?? '',
-      city: json['city']?.toString() ?? '',
-      state: json['state']?.toString() ?? '',
+      city: (location['city'] ?? json['city'])?.toString() ?? '',
+      state: (location['state'] ?? json['state'])?.toString() ?? '',
       whatsapp: json['whatsapp']?.toString() ?? '',
       providerType: json['providerType']?.toString() ?? 'Autônomo',
       services: (json['services'] as List? ?? []).map((e) => '$e').toList(),
-      serviceArea: json['serviceArea']?.toString() ?? '',
-      availability: json['availability']?.toString() ?? '',
+      serviceArea: (serviceArea['label'] ?? json['serviceAreaLabel'] ??
+              json['serviceArea'])
+          ?.toString() ??
+          '',
+      availability: (availability['label'] ?? json['availabilityLabel'] ??
+              json['availability'])
+          ?.toString() ??
+          '',
       isPro: json['isPro'] == true,
       isVerified: json['isVerified'] == true,
-      isOpen24Hours: json['isOpen24Hours'] == true,
+      isOpen24Hours:
+          availability['isOpen24Hours'] == true || json['isOpen24Hours'] == true,
       rating: (json['rating'] as num?)?.toDouble(),
       reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 0,
       distanceKm: (json['distanceKm'] as num?)?.toDouble(),
+      imageUrl: (json['photoUrl'] ?? json['logoUrl'] ?? json['avatarUrl'])
+          ?.toString(),
     );
   }
 
@@ -86,6 +101,7 @@ class ProviderProfile {
   final double? rating;
   final int reviewCount;
   final double? distanceKm;
+  final String? imageUrl;
 }
 
 class CatalogHomeData {
@@ -133,4 +149,3 @@ class EligiblePlan {
   final bool isRecommended;
   final int trialDays;
 }
-

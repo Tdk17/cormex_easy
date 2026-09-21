@@ -79,7 +79,7 @@ class ResponsiveShell extends StatelessWidget {
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
             ),
-      body: child,
+      body: _AppBackground(child: child),
       bottomNavigationBar: desktop
           ? null
           : NavigationBar(
@@ -101,7 +101,7 @@ class ResponsiveShell extends StatelessWidget {
 }
 
 class PageWidth extends StatelessWidget {
-  const PageWidth({required this.child, super.key, this.maxWidth = 1180});
+  const PageWidth({required this.child, super.key, this.maxWidth = 1480});
 
   final Widget child;
   final double maxWidth;
@@ -118,3 +118,64 @@ class PageWidth extends StatelessWidget {
   }
 }
 
+class _AppBackground extends StatelessWidget {
+  const _AppBackground({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFFFFFCFB),
+                Color(0xFFFAF3F5),
+                Color(0xFFFFF9ED),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        Positioned(
+          top: -170,
+          right: -100,
+          child: _Glow(color: AppColors.gold.withValues(alpha: .14), size: 430),
+        ),
+        Positioned(
+          top: 260,
+          left: -210,
+          child: _Glow(color: AppColors.wine.withValues(alpha: .08), size: 520),
+        ),
+        Positioned.fill(child: child),
+      ],
+    );
+  }
+}
+
+class _Glow extends StatelessWidget {
+  const _Glow({required this.color, required this.size});
+
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color, color.withValues(alpha: 0)],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -37,10 +37,12 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final environment = getIt<AppEnvironment>();
       if (!environment.useQaData) {
-        await getIt<ApiClient>().postJson('v1/auth/login', body: {
+        final api = getIt<ApiClient>();
+        final result = await api.runFunction('v1-auth-login', params: {
           'email': email.text.trim(),
           'password': password.text,
         });
+        await api.setSessionToken(result['sessionToken']?.toString());
       } else {
         await Future<void>.delayed(const Duration(milliseconds: 450));
       }
@@ -127,4 +129,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-

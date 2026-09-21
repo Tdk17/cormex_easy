@@ -114,9 +114,11 @@ class _ExplorePageState extends State<ExplorePage> {
               else
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final columns = constraints.maxWidth >= 1050
-                        ? 3
-                        : constraints.maxWidth >= 680
+                    final columns = constraints.maxWidth >= 1320
+                        ? 4
+                        : constraints.maxWidth >= 960
+                            ? 3
+                            : constraints.maxWidth >= 640
                             ? 2
                             : 1;
                     return GridView.builder(
@@ -125,9 +127,9 @@ class _ExplorePageState extends State<ExplorePage> {
                       itemCount: providers.length,
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: columns,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        mainAxisExtent: 228,
+                        crossAxisSpacing: 18,
+                        mainAxisSpacing: 18,
+                        mainAxisExtent: 326,
                       ),
                       itemBuilder: (context, index) {
                         final provider = providers[index];
@@ -148,4 +150,3 @@ class _ExplorePageState extends State<ExplorePage> {
     });
   }
 }
-

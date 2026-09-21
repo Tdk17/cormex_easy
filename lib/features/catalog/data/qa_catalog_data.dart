@@ -32,6 +32,8 @@ class QaCatalogData {
       rating: 4.9,
       reviewCount: 84,
       distanceKm: 3.2,
+      imageUrl:
+          'https://images.unsplash.com/photo-1625047509248-ec889cbff17f?auto=format&fit=crop&w=900&q=82',
     ),
     ProviderProfile(
       id: 'provider-2',
@@ -50,6 +52,8 @@ class QaCatalogData {
       rating: 4.8,
       reviewCount: 41,
       distanceKm: 5.7,
+      imageUrl:
+          'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=900&q=82',
     ),
     ProviderProfile(
       id: 'provider-3',
@@ -66,6 +70,8 @@ class QaCatalogData {
       availability: 'Todos os dias, das 8h às 19h',
       isPro: true,
       distanceKm: 9.4,
+      imageUrl:
+          'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?auto=format&fit=crop&w=900&q=82',
     ),
     ProviderProfile(
       id: 'provider-4',
@@ -81,6 +87,8 @@ class QaCatalogData {
       serviceArea: 'Vale do Itajaí',
       availability: 'Segunda a sexta, das 8h às 18h',
       distanceKm: 14.1,
+      imageUrl:
+          'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=900&q=82',
     ),
   ];
 }

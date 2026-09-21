@@ -31,6 +31,6 @@ Future<void> configureDependencies() async {
     )
     ..registerLazySingleton(AppRouter.new);
 
+  await getIt<ApiClient>().initialize();
   await getIt<CatalogStore>().initialize();
 }
-
