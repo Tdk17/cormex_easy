@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals/signals_flutter.dart';
@@ -594,46 +595,147 @@ class _HeroOfferPoint extends StatelessWidget {
   }
 }
 
-class _CategoriesStrip extends StatelessWidget {
+class _CategoriesStrip extends StatefulWidget {
   const _CategoriesStrip({required this.categories, required this.onTap});
 
   final List<ServiceCategory> categories;
   final ValueChanged<String> onTap;
 
   @override
+  State<_CategoriesStrip> createState() => _CategoriesStripState();
+}
+
+class _CategoriesStripState extends State<_CategoriesStrip> {
+  final _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  double _boundedOffset(double value) {
+    if (!_controller.hasClients) return 0;
+    return value
+        .clamp(0.0, _controller.position.maxScrollExtent)
+        .toDouble();
+  }
+
+  void _scrollBy(double delta) {
+    if (!_controller.hasClients) return;
+    _controller.animateTo(
+      _boundedOffset(_controller.offset + delta),
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || !_controller.hasClients) return;
+    final delta = event.scrollDelta.dy.abs() >= event.scrollDelta.dx.abs()
+        ? event.scrollDelta.dy
+        : event.scrollDelta.dx;
+    _controller.jumpTo(_boundedOffset(_controller.offset + delta));
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (widget.categories.isEmpty) {
+      return const SizedBox(height: 112);
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= 880 && categories.length <= 8) {
-          return SizedBox(
-            height: 112,
-            child: Row(
-              children: [
-                for (var index = 0; index < categories.length; index++) ...[
-                  CategoryTile(
-                    category: categories[index],
-                    expanded: true,
-                    onTap: () => onTap(categories[index].slug),
-                  ),
-                  if (index < categories.length - 1) const SizedBox(width: 12),
-                ],
-              ],
-            ),
-          );
-        }
+        final showArrows = constraints.maxWidth >= 700;
+        final jump = constraints.maxWidth * .72;
         return SizedBox(
-          height: 112,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: categories.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, index) => CategoryTile(
-              category: categories[index],
-              onTap: () => onTap(categories[index].slug),
-            ),
+          height: 132,
+          child: Row(
+            children: [
+              if (showArrows) ...[
+                _CategoryScrollButton(
+                  tooltip: 'Categorias anteriores',
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  onPressed: () => _scrollBy(-jump),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: Listener(
+                  onPointerSignal: _handlePointerSignal,
+                  child: Scrollbar(
+                    controller: _controller,
+                    thumbVisibility: true,
+                    trackVisibility: true,
+                    interactive: true,
+                    thickness: 5,
+                    radius: const Radius.circular(99),
+                    child: ListView.separated(
+                      controller: _controller,
+                      scrollDirection: Axis.horizontal,
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.only(bottom: 14),
+                      itemCount: widget.categories.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                      itemBuilder: (context, index) => CategoryTile(
+                        category: widget.categories[index],
+                        onTap: () => widget.onTap(
+                          widget.categories[index].slug,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (showArrows) ...[
+                const SizedBox(width: 10),
+                _CategoryScrollButton(
+                  tooltip: 'Próximas categorias',
+                  icon: Icons.arrow_forward_ios_rounded,
+                  onPressed: () => _scrollBy(jump),
+                ),
+              ],
+            ],
           ),
         );
       },
+    );
+  }
+}
+
+class _CategoryScrollButton extends StatelessWidget {
+  const _CategoryScrollButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFFE2D6D9)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.wine.withValues(alpha: .12),
+            blurRadius: 16,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        color: AppColors.wine,
+        iconSize: 20,
+        icon: Icon(icon),
+      ),
     );
   }
 }
