@@ -439,10 +439,9 @@ class _HeroPeopleVisual extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = compact ? 230.0 : 310.0;
-    final imageWidth = compact ? 230.0 : 360.0;
+    final imageHeight = compact ? 145.0 : 220.0;
     return Container(
-      height: height,
+      height: compact ? 250 : 330,
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: .18),
@@ -452,42 +451,31 @@ class _HeroPeopleVisual extends StatelessWidget {
         ),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            flex: compact ? 7 : 6,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                compact ? 14 : 20,
-                compact ? 14 : 20,
-                compact ? 4 : 8,
-                compact ? 14 : 20,
-              ),
-              child: _HeroOfferPoints(compact: compact),
+          SizedBox(
+            height: imageHeight,
+            width: double.infinity,
+            child: Image.asset(
+              'assets/images/hero-profissional-cliente.webp',
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+              filterQuality: FilterQuality.high,
+              semanticLabel:
+                  'Casal agradecendo um profissional da CormeX Easy',
             ),
           ),
           Expanded(
-            flex: compact ? 5 : 7,
-            child: ClipRect(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: OverflowBox(
-                  minWidth: 0,
-                  minHeight: 0,
-                  maxWidth: imageWidth,
-                  maxHeight: imageWidth * 1.51,
-                  alignment: Alignment.topCenter,
-                  child: Image.asset(
-                    'assets/images/hero-profissional-cliente.webp',
-                    width: imageWidth,
-                    fit: BoxFit.contain,
-                    alignment: Alignment.topCenter,
-                    filterQuality: FilterQuality.high,
-                    semanticLabel:
-                        'Profissional e cliente satisfeita se cumprimentando',
-                  ),
-                ),
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.fromLTRB(
+                compact ? 12 : 15,
+                compact ? 9 : 10,
+                compact ? 12 : 15,
+                compact ? 9 : 10,
               ),
+              color: AppColors.ink.withValues(alpha: .72),
+              child: _HeroOfferPoints(compact: compact),
             ),
           ),
         ],
@@ -504,40 +492,55 @@ class _HeroOfferPoints extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Tudo em um só lugar',
           style: TextStyle(
             color: Colors.white,
-            fontSize: compact ? 14 : 17,
+            fontSize: compact ? 12.5 : 14.5,
             fontWeight: FontWeight.w900,
           ),
         ),
-        SizedBox(height: compact ? 10 : 16),
-        _HeroOfferPoint(
-          compact: compact,
-          icon: Icons.near_me_outlined,
-          label: 'Profissionais perto de você',
+        SizedBox(height: compact ? 6 : 8),
+        Row(
+          children: [
+            Expanded(
+              child: _HeroOfferPoint(
+                compact: compact,
+                icon: Icons.near_me_outlined,
+                label: 'Profissionais perto de você',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _HeroOfferPoint(
+                compact: compact,
+                icon: Icons.verified_user_outlined,
+                label: 'Perfis claros e verificados',
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: compact ? 7 : 11),
-        _HeroOfferPoint(
-          compact: compact,
-          icon: Icons.verified_user_outlined,
-          label: 'Perfis claros e verificados',
-        ),
-        SizedBox(height: compact ? 7 : 11),
-        _HeroOfferPoint(
-          compact: compact,
-          icon: Icons.search_rounded,
-          label: 'Busca rápida por categoria',
-        ),
-        SizedBox(height: compact ? 7 : 11),
-        _HeroOfferPoint(
-          compact: compact,
-          icon: Icons.chat_bubble_outline,
-          label: 'Contato direto pelo WhatsApp',
+        SizedBox(height: compact ? 5 : 7),
+        Row(
+          children: [
+            Expanded(
+              child: _HeroOfferPoint(
+                compact: compact,
+                icon: Icons.search_rounded,
+                label: 'Busca rápida por categoria',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _HeroOfferPoint(
+                compact: compact,
+                icon: Icons.chat_bubble_outline,
+                label: 'Contato direto no WhatsApp',
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -560,19 +563,19 @@ class _HeroOfferPoint extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: compact ? 26 : 32,
-          height: compact ? 26 : 32,
+          width: compact ? 23 : 27,
+          height: compact ? 23 : 27,
           decoration: BoxDecoration(
-            color: AppColors.gold.withValues(alpha: .16),
+            color: AppColors.gold.withValues(alpha: .17),
             shape: BoxShape.circle,
           ),
           child: Icon(
             icon,
             color: AppColors.gold,
-            size: compact ? 14 : 17,
+            size: compact ? 12 : 14,
           ),
         ),
-        SizedBox(width: compact ? 7 : 9),
+        SizedBox(width: compact ? 6 : 7),
         Expanded(
           child: Text(
             label,
@@ -580,8 +583,8 @@ class _HeroOfferPoint extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Colors.white,
-              fontSize: compact ? 10.5 : 12.5,
-              height: 1.2,
+              fontSize: compact ? 9.2 : 10.8,
+              height: 1.15,
               fontWeight: FontWeight.w700,
             ),
           ),
