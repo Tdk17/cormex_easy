@@ -439,83 +439,154 @@ class _HeroPeopleVisual extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = compact ? 190.0 : 310.0;
-    return SizedBox(
+    final height = compact ? 230.0 : 310.0;
+    final imageWidth = compact ? 230.0 : 360.0;
+    return Container(
       height: height,
       width: double.infinity,
-      child: Stack(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(compact ? 22 : 28),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: .13),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
         children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: .13),
-                borderRadius: BorderRadius.circular(compact ? 22 : 28),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: .12),
-                ),
+          Expanded(
+            flex: compact ? 7 : 6,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                compact ? 14 : 20,
+                compact ? 14 : 20,
+                compact ? 4 : 8,
+                compact ? 14 : 20,
               ),
+              child: _HeroOfferPoints(compact: compact),
             ),
           ),
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(compact ? 22 : 28),
-              child: Image.asset(
-                'assets/images/hero-profissional-cliente.webp',
-                fit: BoxFit.cover,
+          Expanded(
+            flex: compact ? 5 : 7,
+            child: ClipRect(
+              child: Align(
                 alignment: Alignment.topCenter,
-                filterQuality: FilterQuality.high,
-                semanticLabel:
-                    'Profissional e cliente satisfeita se cumprimentando',
-              ),
-            ),
-          ),
-          Positioned(
-            left: compact ? 10 : 14,
-            bottom: compact ? 10 : 14,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: compact ? 11 : 13,
-                vertical: compact ? 7 : 9,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.ink.withValues(alpha: .88),
-                borderRadius: BorderRadius.circular(99),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: .18),
+                child: OverflowBox(
+                  minWidth: 0,
+                  minHeight: 0,
+                  maxWidth: imageWidth,
+                  maxHeight: imageWidth * 1.51,
+                  alignment: Alignment.topCenter,
+                  child: Image.asset(
+                    'assets/images/hero-profissional-cliente.webp',
+                    width: imageWidth,
+                    fit: BoxFit.contain,
+                    alignment: Alignment.topCenter,
+                    filterQuality: FilterQuality.high,
+                    semanticLabel:
+                        'Profissional e cliente satisfeita se cumprimentando',
+                  ),
                 ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x44000000),
-                    blurRadius: 14,
-                    offset: Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.handshake_outlined,
-                    color: AppColors.gold,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    compact
-                        ? 'Serviço concluído'
-                        : 'Confiança em cada serviço',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: compact ? 11 : 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HeroOfferPoints extends StatelessWidget {
+  const _HeroOfferPoints({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tudo em um só lugar',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: compact ? 14 : 17,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        SizedBox(height: compact ? 10 : 16),
+        _HeroOfferPoint(
+          compact: compact,
+          icon: Icons.near_me_outlined,
+          label: 'Profissionais perto de você',
+        ),
+        SizedBox(height: compact ? 7 : 11),
+        _HeroOfferPoint(
+          compact: compact,
+          icon: Icons.verified_user_outlined,
+          label: 'Perfis claros e verificados',
+        ),
+        SizedBox(height: compact ? 7 : 11),
+        _HeroOfferPoint(
+          compact: compact,
+          icon: Icons.search_rounded,
+          label: 'Busca rápida por categoria',
+        ),
+        SizedBox(height: compact ? 7 : 11),
+        _HeroOfferPoint(
+          compact: compact,
+          icon: Icons.chat_bubble_outline,
+          label: 'Contato direto pelo WhatsApp',
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroOfferPoint extends StatelessWidget {
+  const _HeroOfferPoint({
+    required this.compact,
+    required this.icon,
+    required this.label,
+  });
+
+  final bool compact;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: compact ? 26 : 32,
+          height: compact ? 26 : 32,
+          decoration: BoxDecoration(
+            color: AppColors.gold.withValues(alpha: .16),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: AppColors.gold,
+            size: compact ? 14 : 17,
+          ),
+        ),
+        SizedBox(width: compact ? 7 : 9),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: compact ? 10.5 : 12.5,
+              height: 1.2,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
