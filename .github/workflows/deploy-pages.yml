@@ -27,6 +27,7 @@ jobs:
       - run: flutter analyze
       - run: flutter test
       - name: Build web
+        # A configuração pública do BancoEasy é injetada pelas Variables do repositório.
         run: >-
           flutter build web --release
           --base-href=/cormex_easy/
