@@ -37,21 +37,19 @@ class ResponsiveShell extends StatelessWidget {
       appBar: desktop
           ? AppBar(
               toolbarHeight: 76,
-              backgroundColor: Colors.white.withValues(alpha: .96),
-              surfaceTintColor: Colors.transparent,
               titleSpacing: 28,
               title: InkWell(
                 onTap: () => context.go('/'),
                 borderRadius: BorderRadius.circular(12),
                 child: const Padding(
                   padding: EdgeInsets.all(4),
-                  child: BrandLogo(),
+                  child: BrandLogo(onDark: true),
                 ),
               ),
               actions: [
                 for (var i = 0; i < _destinations.length; i++)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
                     child: TextButton.icon(
                       onPressed: () => context.go(_destinations[i].$1),
                       icon: Icon(
@@ -63,8 +61,18 @@ class ResponsiveShell extends StatelessWidget {
                       label: Text(_destinations[i].$2),
                       style: TextButton.styleFrom(
                         foregroundColor: i == _selectedIndex
+                            ? Colors.white
+                            : Colors.white70,
+                        backgroundColor: i == _selectedIndex
                             ? AppColors.wine
-                            : AppColors.ink,
+                            : Colors.transparent,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -74,16 +82,16 @@ class ResponsiveShell extends StatelessWidget {
           : AppBar(
               title: InkWell(
                 onTap: () => context.go('/'),
-                child: const BrandLogo(),
+                child: const BrandLogo(onDark: true),
               ),
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.transparent,
             ),
       body: _AppBackground(child: child),
       bottomNavigationBar: desktop
           ? null
           : NavigationBar(
               selectedIndex: _selectedIndex,
+              backgroundColor: AppColors.black,
+              indicatorColor: AppColors.wine,
               onDestinationSelected: (index) {
                 context.go(_destinations[index].$1);
               },
@@ -108,11 +116,34 @@ class PageWidth extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return Align(
       alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: child,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 20,
+          vertical: compact ? 10 : 20,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F5F5),
+              borderRadius: BorderRadius.circular(compact ? 24 : 34),
+              border: Border.all(color: Colors.white.withValues(alpha: .16)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x66000000),
+                  blurRadius: 34,
+                  offset: Offset(0, 16),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: child,
+          ),
+        ),
       ),
     );
   }
@@ -132,9 +163,9 @@ class _AppBackground extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFFFFFCFB),
-                Color(0xFFFAF3F5),
-                Color(0xFFFFF9ED),
+                Color(0xFF170308),
+                AppColors.wineDark,
+                Color(0xFF09090B),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -143,13 +174,27 @@ class _AppBackground extends StatelessWidget {
         ),
         Positioned(
           top: -170,
-          right: -100,
-          child: _Glow(color: AppColors.gold.withValues(alpha: .14), size: 430),
+          right: -90,
+          child: _Glow(
+            color: AppColors.wineSoft.withValues(alpha: .28),
+            size: 430,
+          ),
         ),
         Positioned(
-          top: 260,
-          left: -210,
-          child: _Glow(color: AppColors.wine.withValues(alpha: .08), size: 520),
+          top: 280,
+          left: -230,
+          child: _Glow(
+            color: Colors.black.withValues(alpha: .42),
+            size: 560,
+          ),
+        ),
+        Positioned(
+          bottom: -240,
+          right: 80,
+          child: _Glow(
+            color: AppColors.wine.withValues(alpha: .22),
+            size: 520,
+          ),
         ),
         Positioned.fill(child: child),
       ],

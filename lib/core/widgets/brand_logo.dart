@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class BrandLogo extends StatelessWidget {
-  const BrandLogo({super.key, this.compact = false});
+  const BrandLogo({
+    super.key,
+    this.compact = false,
+    this.onDark = false,
+  });
 
   final bool compact;
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
@@ -20,13 +25,22 @@ class BrandLogo extends StatelessWidget {
             height: 40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.wine,
+              color: onDark ? Colors.white : AppColors.wine,
               borderRadius: BorderRadius.circular(12),
+              boxShadow: onDark
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x33000000),
+                        blurRadius: 14,
+                        offset: Offset(0, 5),
+                      ),
+                    ]
+                  : null,
             ),
-            child: const Text(
+            child: Text(
               'Cx',
               style: TextStyle(
-                color: Colors.white,
+                color: onDark ? AppColors.wineDark : Colors.white,
                 fontWeight: FontWeight.w900,
                 fontSize: 18,
               ),
@@ -34,7 +48,7 @@ class BrandLogo extends StatelessWidget {
           ),
           if (!compact) ...[
             const SizedBox(width: 10),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -44,7 +58,7 @@ class BrandLogo extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                     fontSize: 19,
                     height: 1,
-                    color: AppColors.ink,
+                    color: onDark ? Colors.white : AppColors.ink,
                   ),
                 ),
                 Text(
@@ -53,7 +67,7 @@ class BrandLogo extends StatelessWidget {
                     letterSpacing: 2.2,
                     fontWeight: FontWeight.w700,
                     fontSize: 9,
-                    color: AppColors.wine,
+                    color: onDark ? AppColors.wineSoft : AppColors.wine,
                   ),
                 ),
               ],
@@ -64,4 +78,3 @@ class BrandLogo extends StatelessWidget {
     );
   }
 }
-
