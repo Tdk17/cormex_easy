@@ -6,6 +6,8 @@ import '../../../core/di/injection.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/brand_logo.dart';
+import '../../catalog/data/favorites_service.dart';
+import '../../catalog/presentation/catalog_store.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -47,6 +49,8 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         await Future<void>.delayed(const Duration(milliseconds: 450));
       }
+      final syncedFavorites = await getIt<FavoritesService>().load();
+      getIt<CatalogStore>().favoriteIds.value = syncedFavorites;
       if (mounted) context.go('/conta');
     } catch (error) {
       if (mounted) {

@@ -434,7 +434,8 @@ class _ManageAdPageState extends State<ManageAdPage> {
                               onPressed: acting ? null : _cancelSubscription,
                               child: const Text('Cancelar assinatura'),
                             ),
-                          if (subscriptionStatus == 'cancelled')
+                          if (subscriptionStatus == 'cancelled' &&
+                              plan['code']?.toString() == 'pro')
                             TextButton(
                               onPressed: acting ? null : _reactivateSubscription,
                               child: const Text('Reativar assinatura'),
@@ -484,7 +485,7 @@ class _ManageAdPageState extends State<ManageAdPage> {
                                     width: 150,
                                     height: 110,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => const SizedBox(
+                                    errorBuilder: (context, error, stackTrace) => const SizedBox(
                                       width: 150,
                                       height: 110,
                                       child: ColoredBox(

@@ -91,6 +91,19 @@ class _PlansPageState extends State<PlansPage> {
   }
 
   Future<void> _choosePlan(Map<String, dynamic> plan) async {
+    final activeStatus = currentSubscription?['status']?.toString();
+    final activePlan =
+        (currentSubscription?['plan'] as Map?)?.cast<String, dynamic>();
+    final requestedCode = plan['code']?.toString();
+    if ((activeStatus == 'active' || activeStatus == 'trial') &&
+        activePlan?['code']?.toString() != requestedCode) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cancele o plano atual antes de trocar de modalidade.'),
+        ),
+      );
+      return;
+    }
     if (getIt<AppEnvironment>().useQaData) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Seleção validada no ambiente QA sem cobrança real.')),
