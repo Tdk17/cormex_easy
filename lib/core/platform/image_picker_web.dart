@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:convert';
 import 'dart:html' as html;
+import 'dart:typed_data';
 
 class PickedImageData {
   const PickedImageData({
@@ -26,7 +27,9 @@ Future<PickedImageData?> pickPortfolioImage() async {
   final file = selected.first;
   final reader = html.FileReader()..readAsArrayBuffer(file);
   await reader.onLoad.first;
-  final bytes = (reader.result as List<int>?) ?? const <int>[];
+  final result = reader.result;
+  if (result is! ByteBuffer) return null;
+  final bytes = Uint8List.view(result);
   if (bytes.isEmpty) return null;
   return PickedImageData(
     name: file.name,
