@@ -1,14 +1,124 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_environment.dart';
+import '../../../core/di/injection.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive_shell.dart';
+import '../../catalog/data/favorites_service.dart';
+import '../../catalog/presentation/catalog_store.dart';
 
-class AccountPage extends StatelessWidget {
+class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
 
   @override
+  State<AccountPage> createState() => _AccountPageState();
+}
+
+class _AccountPageState extends State<AccountPage> {
+  bool loading = true;
+  Map<String, dynamic>? user;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAccount();
+  }
+
+  Future<void> _loadAccount() async {
+    final environment = getIt<AppEnvironment>();
+    final api = getIt<ApiClient>();
+    if (environment.useQaData) {
+      user = {
+        'name': 'Conta de teste QA',
+        'email': 'qa@cormex.easy',
+        'phone': '+55 47 99999-9999',
+        'hasProviderProfile': true,
+      };
+    } else if (api.sessionToken?.isNotEmpty == true) {
+      try {
+        final result = await api.runFunction('v1-auth-me');
+        user = (result['user'] as Map?)?.cast<String, dynamic>();
+      } on ApiException catch (exception) {
+        error = exception.message;
+        if (exception.type == ApiFailureType.unauthorized) {
+          await api.setSessionToken(null);
+        }
+      }
+    }
+    if (mounted) setState(() => loading = false);
+  }
+
+  Future<void> _logout() async {
+    final api = getIt<ApiClient>();
+    try {
+      if (api.sessionToken?.isNotEmpty == true) {
+        await api.runFunction('v1-auth-logout');
+      }
+    } catch (_) {
+      // O token local ainda deve ser removido se a sessão já expirou.
+    }
+    await api.setSessionToken(null);
+    if (mounted) context.go('/');
+  }
+
+  Future<void> _resetPassword() async {
+    final address = user?['email']?.toString() ?? '';
+    if (address.isEmpty) return;
+    try {
+      await getIt<ApiClient>().runFunction(
+        'v1-auth-request-password-reset',
+        params: {'email': address},
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Instruções de senha enviadas por e-mail.')),
+      );
+    } on ApiException catch (exception) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(exception.message)),
+      );
+    }
+  }
+
+  Future<void> _showPreferences() async {
+    final clear = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Preferências'),
+        content: const Text(
+          'A localização continua sob controle do navegador. Você também pode limpar todos os prestadores salvos neste dispositivo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Fechar'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Limpar favoritos'),
+          ),
+        ],
+      ),
+    );
+    if (clear != true) return;
+    await getIt<FavoritesService>().save(<String>{});
+    getIt<CatalogStore>().favoriteIds.value = <String>{};
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Favoritos removidos.')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (loading) return const Center(child: CircularProgressIndicator());
+    final signedIn = user != null;
     return PageWidth(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 26, 20, 48),
@@ -19,6 +129,11 @@ class AccountPage extends StatelessWidget {
             const SizedBox(height: 8),
             const Text('Dados pessoais e preferências ficam separados do anúncio comercial.'),
             const SizedBox(height: 24),
+            if (error != null && !signedIn)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(error!, style: const TextStyle(color: Colors.red)),
+              ),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -30,17 +145,36 @@ class AccountPage extends StatelessWidget {
                       child: Icon(Icons.person_outline, color: AppColors.wine, size: 32),
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Visitante', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                          SizedBox(height: 4),
-                          Text('Entre para sincronizar seus dados e gerenciar anúncios.'),
+                          Text(
+                            signedIn ? user!['name']?.toString() ?? 'Sua conta' : 'Visitante',
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            signedIn
+                                ? user!['email']?.toString() ?? ''
+                                : 'Entre para sincronizar seus dados e gerenciar anúncios.',
+                          ),
+                          if (signedIn && (user!['phone']?.toString().isNotEmpty ?? false))
+                            Text(user!['phone'].toString()),
                         ],
                       ),
                     ),
-                    FilledButton(onPressed: () => context.go('/entrar'), child: const Text('Entrar')),
+                    if (signedIn)
+                      OutlinedButton.icon(
+                        onPressed: _logout,
+                        icon: const Icon(Icons.logout),
+                        label: const Text('Sair'),
+                      )
+                    else
+                      FilledButton(
+                        onPressed: () => context.go('/entrar'),
+                        child: const Text('Entrar'),
+                      ),
                   ],
                 ),
               ),
@@ -57,8 +191,8 @@ class AccountPage extends StatelessWidget {
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                   children: [
-                    _ActionCard(icon: Icons.add_business, title: 'Anunciar meu serviço', subtitle: 'Crie seu perfil público.', onTap: () => context.go('/anunciar')),
-                    _ActionCard(icon: Icons.storefront, title: 'Gerenciar anúncio', subtitle: 'Edite informações e plano.', onTap: () => context.go('/meu-anuncio')),
+                    _ActionCard(icon: Icons.add_business, title: 'Anunciar meu serviço', subtitle: 'Crie ou atualize seu perfil público.', onTap: () => context.go('/anunciar')),
+                    _ActionCard(icon: Icons.storefront, title: 'Gerenciar anúncio', subtitle: 'Edite informações, status e plano.', onTap: () => context.go('/meu-anuncio')),
                     _ActionCard(icon: Icons.favorite_outline, title: 'Favoritos', subtitle: 'Veja os perfis que salvou.', onTap: () => context.go('/favoritos')),
                   ],
                 );
@@ -68,11 +202,28 @@ class AccountPage extends StatelessWidget {
             Card(
               child: Column(
                 children: [
-                  ListTile(leading: const Icon(Icons.security_outlined), title: const Text('Segurança e senha'), trailing: const Icon(Icons.chevron_right), onTap: () {}),
+                  ListTile(
+                    enabled: signedIn,
+                    leading: const Icon(Icons.security_outlined),
+                    title: const Text('Segurança e senha'),
+                    subtitle: Text(signedIn ? 'Enviar redefinição para seu e-mail' : 'Entre para alterar sua senha'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: signedIn ? _resetPassword : null,
+                  ),
                   const Divider(height: 1),
-                  ListTile(leading: const Icon(Icons.tune), title: const Text('Preferências'), trailing: const Icon(Icons.chevron_right), onTap: () {}),
+                  ListTile(
+                    leading: const Icon(Icons.tune),
+                    title: const Text('Preferências'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _showPreferences,
+                  ),
                   const Divider(height: 1),
-                  ListTile(leading: const Icon(Icons.privacy_tip_outlined), title: const Text('Privacidade e dados'), trailing: const Icon(Icons.chevron_right), onTap: () => context.go('/privacidade')),
+                  ListTile(
+                    leading: const Icon(Icons.privacy_tip_outlined),
+                    title: const Text('Privacidade e dados'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.go('/privacidade'),
+                  ),
                 ],
               ),
             ),
@@ -114,4 +265,3 @@ class _ActionCard extends StatelessWidget {
     );
   }
 }
-

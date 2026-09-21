@@ -11,14 +11,40 @@ import '../../features/catalog/presentation/explore_page.dart';
 import '../../features/catalog/presentation/favorites_page.dart';
 import '../../features/catalog/presentation/home_page.dart';
 import '../../features/catalog/presentation/provider_page.dart';
+import '../../features/system/data/system_bootstrap_service.dart';
 import '../../features/system/presentation/error_page.dart';
 import '../../features/system/presentation/legal_page.dart';
 import '../../features/system/presentation/maintenance_page.dart';
 import '../widgets/responsive_shell.dart';
 
 class AppRouter {
+  AppRouter(this.system);
+
+  final SystemBootstrapService system;
+
   late final GoRouter router = GoRouter(
     initialLocation: '/',
+    redirect: (context, state) {
+      if (!system.maintenanceEnabled ||
+          state.matchedLocation == '/manutencao') {
+        return null;
+      }
+      const publicRoutes = {
+        '/',
+        '/explorar',
+        '/categorias',
+        '/privacidade',
+        '/termos',
+      };
+      final publicDetail =
+          state.matchedLocation.startsWith('/prestador/') ||
+          state.matchedLocation.startsWith('/categoria/');
+      if (system.allowPublicRead &&
+          (publicRoutes.contains(state.matchedLocation) || publicDetail)) {
+        return null;
+      }
+      return '/manutencao';
+    },
     errorBuilder: (context, state) => const ResponsiveShell(
       location: '/erro/404',
       child: ErrorPage(),
@@ -27,7 +53,11 @@ class AppRouter {
       GoRoute(
         path: '/manutencao',
         builder: (context, state) => MaintenancePage(
-          emergency: state.uri.queryParameters['tipo'] == 'emergencial',
+          emergency: system.maintenanceType == 'emergency' ||
+              state.uri.queryParameters['tipo'] == 'emergencial',
+          title: system.maintenanceTitle,
+          message: system.maintenanceMessage,
+          estimatedReturnAt: system.estimatedReturnAt,
         ),
       ),
       ShellRoute(

@@ -5,12 +5,31 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/brand_logo.dart';
 
 class MaintenancePage extends StatelessWidget {
-  const MaintenancePage({super.key, this.emergency = false});
+  const MaintenancePage({
+    super.key,
+    this.emergency = false,
+    this.title,
+    this.message,
+    this.estimatedReturnAt,
+  });
 
   final bool emergency;
+  final String? title;
+  final String? message;
+  final DateTime? estimatedReturnAt;
 
   @override
   Widget build(BuildContext context) {
+    final heading = title?.trim().isNotEmpty == true
+        ? title!
+        : emergency
+            ? 'Ajuste emergencial em andamento'
+            : 'Estamos fazendo uma melhoria';
+    final body = message?.trim().isNotEmpty == true
+        ? message!
+        : emergency
+            ? 'O CormeX Easy está temporariamente indisponível. Volte em alguns instantes.'
+            : 'Uma manutenção programada está deixando a plataforma ainda melhor. Obrigado pela compreensão.';
     return Scaffold(
       body: DecoratedBox(
         decoration: const BoxDecoration(
@@ -35,9 +54,13 @@ class MaintenancePage extends StatelessWidget {
                         child: Icon(emergency ? Icons.build_circle_outlined : Icons.handyman_outlined, color: AppColors.wine, size: 48),
                       ),
                       const SizedBox(height: 22),
-                      Text(emergency ? 'Ajuste emergencial em andamento' : 'Estamos fazendo uma melhoria', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
+                      Text(heading, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
                       const SizedBox(height: 12),
-                      Text(emergency ? 'O CormeX Easy está temporariamente indisponível. Volte em alguns instantes.' : 'Uma manutenção programada está deixando a plataforma ainda melhor. Obrigado pela compreensão.', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.muted, height: 1.5)),
+                      Text(body, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.muted, height: 1.5)),
+                      if (estimatedReturnAt != null) ...[
+                        const SizedBox(height: 12),
+                        Text('Previsão: ${estimatedReturnAt!.toLocal()}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      ],
                       const SizedBox(height: 24),
                       FilledButton.icon(onPressed: () => context.go('/'), icon: const Icon(Icons.refresh), label: const Text('Tentar novamente')),
                     ],
@@ -51,4 +74,3 @@ class MaintenancePage extends StatelessWidget {
     );
   }
 }
-

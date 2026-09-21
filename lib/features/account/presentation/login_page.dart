@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/config/app_environment.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/brand_logo.dart';
 
 class LoginPage extends StatefulWidget {
@@ -47,14 +48,68 @@ class _LoginPageState extends State<LoginPage> {
         await Future<void>.delayed(const Duration(milliseconds: 450));
       }
       if (mounted) context.go('/conta');
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
+        final message = error is ApiException
+            ? error.message
+            : 'Não foi possível entrar. Confira seus dados.';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível entrar. Confira seus dados.')),
+          SnackBar(content: Text(message)),
         );
       }
     } finally {
       if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final controller = TextEditingController(text: email.text.trim());
+    final address = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Recuperar senha'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'E-mail da conta',
+            prefixIcon: Icon(Icons.email_outlined),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (address == null || !address.contains('@')) return;
+    try {
+      final environment = getIt<AppEnvironment>();
+      if (!environment.useQaData) {
+        await getIt<ApiClient>().runFunction(
+          'v1-auth-request-password-reset',
+          params: {'email': address},
+        );
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Se a conta existir, enviaremos as instruções por e-mail.'),
+        ),
+      );
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
     }
   }
 
@@ -101,7 +156,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: TextButton(onPressed: () {}, child: const Text('Esqueci minha senha')),
+                    child: TextButton(onPressed: loading ? null : _resetPassword, child: const Text('Esqueci minha senha')),
                   ),
                   const SizedBox(height: 8),
                   FilledButton(

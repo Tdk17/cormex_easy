@@ -32,9 +32,34 @@ class _ProviderPageState extends State<ProviderPage> {
   void initState() {
     super.initState();
     providerFuture = getIt<CatalogRepository>().findProvider(widget.slug);
+    providerFuture.then((provider) {
+      if (provider != null) _track('profile_view', provider);
+    });
+  }
+
+  Future<void> _track(String eventType, ProviderProfile provider) async {
+    final environment = getIt<AppEnvironment>();
+    if (environment.useQaData || !environment.hasApi) return;
+    try {
+      await getIt<ApiClient>().runFunction('v1-providers-track-event', params: {
+        'providerPublicId': provider.id,
+        'eventType': eventType,
+        'eventId': '${eventType}_${provider.id}_${DateTime.now().microsecondsSinceEpoch}',
+        'source': 'web',
+      });
+    } catch (_) {
+      // Analytics nunca deve bloquear a ação principal do visitante.
+    }
+  }
+
+  Future<void> _toggleFavorite(ProviderProfile provider) async {
+    final adding = !store.isFavorite(provider.id);
+    await store.toggleFavorite(provider.id);
+    if (adding) await _track('favorite_add', provider);
   }
 
   Future<void> _openWhatsApp(ProviderProfile provider) async {
+    await _track('whatsapp_click', provider);
     final message = Uri.encodeComponent('Olá! Encontrei seu serviço pelo CormeX Easy.');
     final phone = provider.whatsapp.replaceAll(RegExp(r'\D'), '');
     final uri = Uri.parse('https://wa.me/$phone?text=$message');
@@ -46,7 +71,10 @@ class _ProviderPageState extends State<ProviderPage> {
   }
 
   Future<void> _share(ProviderProfile provider) async {
-    final link = Uri.base.replace(path: '/prestador/${provider.slug}', query: '').toString();
+    await _track('share_click', provider);
+    final link = Uri.base
+        .replace(query: null, fragment: '/prestador/${provider.slug}')
+        .toString();
     await Clipboard.setData(ClipboardData(text: link));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -151,7 +179,7 @@ class _ProviderPageState extends State<ProviderPage> {
         return Watch((context) => _ProviderContent(
               provider: provider,
               isFavorite: store.isFavorite(provider.id),
-              onFavorite: () => store.toggleFavorite(provider.id),
+              onFavorite: () => _toggleFavorite(provider),
               onWhatsApp: () => _openWhatsApp(provider),
               onShare: () => _share(provider),
               onReport: () => _report(provider),
