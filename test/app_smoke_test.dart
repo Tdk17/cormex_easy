@@ -12,10 +12,10 @@ void main() {
     await configureDependencies();
 
     await tester.pumpWidget(const CormexEasyApp());
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('O serviço certo, perto de você.'), findsOneWidget);
     expect(find.text('Anunciar meu serviço'), findsWidgets);
   });
 }
-
