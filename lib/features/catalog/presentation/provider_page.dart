@@ -13,7 +13,6 @@ import '../../../core/widgets/state_view.dart';
 import '../domain/catalog_models.dart';
 import '../domain/catalog_repository.dart';
 import 'catalog_store.dart';
-import 'catalog_widgets.dart';
 
 class ProviderPage extends StatefulWidget {
   const ProviderPage({required this.slug, super.key});
@@ -384,4 +383,3 @@ class _InfoCard extends StatelessWidget {
     );
   }
 }
-

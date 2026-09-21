@@ -325,9 +325,9 @@ class _AdvertiseBanner extends StatelessWidget {
         spacing: 20,
         runSpacing: 16,
         children: [
-          const ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 620),
-            child: Column(
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 620),
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -392,4 +392,3 @@ class _PulseBox extends StatelessWidget {
     );
   }
 }
-

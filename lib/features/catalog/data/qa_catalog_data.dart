@@ -12,7 +12,7 @@ class QaCatalogData {
     ServiceCategory(id: 'cat-7', name: 'Tecnologia', slug: 'tecnologia', iconKey: 'computer'),
   ];
 
-  static const providers = <ProviderProfile>[
+  static final providers = <ProviderProfile>[
     ProviderProfile(
       id: 'provider-1',
       slug: 'auto-socorro-norte',
@@ -84,4 +84,3 @@ class QaCatalogData {
     ),
   ];
 }
-

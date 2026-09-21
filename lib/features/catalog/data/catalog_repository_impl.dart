@@ -14,7 +14,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
   Future<CatalogHomeData> loadHome({String? city, double? lat, double? lng}) async {
     if (environment.useQaData) {
       await Future<void>.delayed(const Duration(milliseconds: 350));
-      return const CatalogHomeData(
+      return CatalogHomeData(
         categories: QaCatalogData.categories,
         providers: QaCatalogData.providers,
         bannerTitle: 'O serviço certo, perto de você.',
@@ -86,4 +86,3 @@ class CatalogRepositoryImpl implements CatalogRepository {
         .toList();
   }
 }
-

@@ -464,7 +464,30 @@ class _PlanOption extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Radio<String>(value: pro ? 'pro' : 'basic', groupValue: selected ? (pro ? 'pro' : 'basic') : '', onChanged: (_) => onTap()),
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? AppColors.gold : const Color(0xFF9E9296),
+                  width: 2,
+                ),
+              ),
+              child: selected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: AppColors.gold,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -532,4 +555,3 @@ class _ReviewRow extends StatelessWidget {
     );
   }
 }
-
