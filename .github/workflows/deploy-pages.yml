@@ -1,0 +1,51 @@
+name: Deploy CormeX Easy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - name: Build web
+        run: >-
+          flutter build web --release
+          --base-href=/cormex_easy/
+          --dart-define=APP_ENV=${{ vars.APP_ENV || 'qa' }}
+          --dart-define=USE_QA_DATA=${{ vars.USE_QA_DATA || 'true' }}
+          --dart-define=API_BASE_URL=${{ vars.API_BASE_URL || '' }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+
