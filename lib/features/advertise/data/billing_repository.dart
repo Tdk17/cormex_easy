@@ -40,7 +40,7 @@ class BillingRepository {
       });
 
   Future<Map<String, dynamic>> history({int limit = 20}) =>
-      _api.runFunction('v1-billing-subscription-history', params: {
+      _api.runFunction('v1-billing-history', params: {
         'limit': limit,
       });
 }

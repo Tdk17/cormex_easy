@@ -64,6 +64,11 @@ jobs:
           mkdir -p build/pages/qa
           cp -R build/production/. build/pages/
           cp -R build/qa/. build/pages/qa/
+          touch build/pages/.nojekyll
+          test -f build/pages/index.html
+          test -f build/pages/qa/index.html
+          test -f build/pages/qa/manifest.json
+          test -f build/pages/qa/cormex_service_worker.js
 
       - uses: actions/configure-pages@v5
         with:
@@ -82,3 +87,12 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Smoke test production and QA
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          base="${PAGE_URL%/}"
+          curl --fail --location --retry 18 --retry-delay 10 --retry-all-errors             "$base/" -o /dev/null
+          curl --fail --location --retry 18 --retry-delay 10 --retry-all-errors             "$base/qa/" -o /dev/null
+          curl --fail --location --retry 18 --retry-delay 10 --retry-all-errors             "$base/qa/index.html" -o /dev/null

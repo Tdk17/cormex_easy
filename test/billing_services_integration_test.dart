@@ -30,7 +30,7 @@ void main() {
       'v1-billing-subscription-pause',
       'v1-billing-subscription-resume',
       'v1-billing-subscription-change-plan',
-      'v1-billing-subscription-history',
+      'v1-billing-history',
     ]) {
       expect(combined, contains(endpoint));
     }
@@ -38,6 +38,12 @@ void main() {
     expect(combined, contains('EASY_NEGOCIOS'));
     expect(combined, isNot(contains('v1-subscriptions-')));
     expect(combined, isNot(contains('v1-plans-eligible')));
+    expect(combined, isNot(contains('v1-billing-subscription-history')));
+    expect(plans, contains('supportedPaymentMethods'));
+    expect(plans, contains("supportedPaymentMethods['credit_card'] == true"));
+    expect(plans, contains("supportedPaymentMethods['pix'] == true"));
+    expect(plans, contains('final history = await repository.history()'));
+    expect(plans, contains('catch (_)'));
   });
 
   test('gestor de anúncio integra o CRUD oficial de serviços', () {

@@ -187,9 +187,24 @@ class _AdvertisePageState extends State<AdvertisePage> {
         ? 'EASY_PROFISSIONAL'
         : 'EASY_NEGOCIOS';
     if (selectedPlan != expectedPlan) selectedPlan = expectedPlan;
+    final plansResponse = await BillingRepository(api).listPlans();
+    final supported = (plansResponse['supportedPaymentMethods'] as Map?)
+            ?.cast<String, dynamic>() ??
+        const {};
+    final preferredPaymentMode = supported['credit_card'] == true
+        ? 'card'
+        : supported['pix'] == true
+            ? 'pix'
+            : null;
+    if (preferredPaymentMode == null) {
+      throw const ApiException(
+        ApiFailureType.badRequest,
+        'Nenhum método de pagamento está disponível agora.',
+      );
+    }
     final result = await BillingRepository(api).createSubscription(
       selectedPlan,
-      preferredPaymentMode: 'card',
+      preferredPaymentMode: preferredPaymentMode,
     );
     final status = result['status']?.toString();
     if (status == 'active') {

@@ -26,6 +26,15 @@ class _PlansPageState extends State<PlansPage> {
   List<Map<String, dynamic>> payments = const [];
   Map<String, dynamic>? subscription;
   Map<String, dynamic>? entitlement;
+  Map<String, bool> supportedPaymentMethods = const {
+    'credit_card': true,
+    'pix': true,
+  };
+
+  List<String> get availablePaymentModes => [
+        if (supportedPaymentMethods['credit_card'] == true) 'card',
+        if (supportedPaymentMethods['pix'] == true) 'pix',
+      ];
 
   @override
   void initState() {
@@ -45,6 +54,7 @@ class _PlansPageState extends State<PlansPage> {
       subscription = {'planCode': 'EASY_PROFISSIONAL', 'status': 'active', 'amount': 29.90, 'currency': 'BRL', 'paymentMode': 'card'};
       entitlement = {'active': true, 'planCode': 'EASY_PROFISSIONAL', 'serviceLimit': 5, 'categoryLimit': 1, 'metricsLevel': 'basic', 'commercialHighlight': false};
       payments = const [{'date': '2026-09-20', 'amount': 29.90, 'currency': 'BRL', 'status': 'approved', 'paymentType': 'card'}];
+      supportedPaymentMethods = const {'credit_card': true, 'pix': true};
       if (mounted) setState(() => loading = false);
       return;
     }
@@ -57,12 +67,25 @@ class _PlansPageState extends State<PlansPage> {
       final results = await Future.wait([
         repository.listPlans(),
         repository.subscriptionMe(),
-        repository.history(),
       ]);
       plans = _items(results[0]['plans']);
       subscription = _map(results[1]['subscription']);
       entitlement = _map(results[1]['entitlement']);
-      payments = _items(results[2]['items']);
+      supportedPaymentMethods = _boolMap(
+        results[0]['supportedPaymentMethods'],
+      );
+      final modes = availablePaymentModes;
+      paymentMode = modes.contains(paymentMode)
+          ? paymentMode
+          : modes.isNotEmpty
+              ? modes.first
+              : '';
+      try {
+        final history = await repository.history();
+        payments = _items(history['items']);
+      } catch (_) {
+        payments = const [];
+      }
     } on ApiException catch (exception) {
       error = exception.message;
       if (exception.type == ApiFailureType.unauthorized) {
@@ -75,6 +98,14 @@ class _PlansPageState extends State<PlansPage> {
 
   Future<void> _choose(Map<String, dynamic> plan) async {
     if (acting) return;
+    if (!availablePaymentModes.contains(paymentMode)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nenhum método de pagamento está disponível agora.'),
+        ),
+      );
+      return;
+    }
     setState(() => acting = true);
     try {
       final repository = BillingRepository(getIt<ApiClient>());
@@ -144,12 +175,50 @@ class _PlansPageState extends State<PlansPage> {
             const SizedBox(height: 6),
             const Text('Escolha o plano oficial do seu perfil. Limites e benefícios são validados pelo servidor.'),
             const SizedBox(height: 18),
-            SegmentedButton<String>(
-              segments: const [ButtonSegment(value: 'card', icon: Icon(Icons.credit_card), label: Text('Cartão')), ButtonSegment(value: 'pix', icon: Icon(Icons.pix), label: Text('Pix'))],
-              selected: {paymentMode},
-              onSelectionChanged: acting ? null : (value) => setState(() => paymentMode = value.first),
-            ),
-            const SizedBox(height: 18),
+            if (availablePaymentModes.length > 1) ...[
+              SegmentedButton<String>(
+                segments: [
+                  if (supportedPaymentMethods['credit_card'] == true)
+                    const ButtonSegment(
+                      value: 'card',
+                      icon: Icon(Icons.credit_card),
+                      label: Text('Cartão'),
+                    ),
+                  if (supportedPaymentMethods['pix'] == true)
+                    const ButtonSegment(
+                      value: 'pix',
+                      icon: Icon(Icons.pix),
+                      label: Text('Pix'),
+                    ),
+                ],
+                selected: {paymentMode},
+                onSelectionChanged: acting
+                    ? null
+                    : (value) => setState(() => paymentMode = value.first),
+              ),
+              const SizedBox(height: 18),
+            ] else if (availablePaymentModes.length == 1) ...[
+              Chip(
+                avatar: Icon(
+                  paymentMode == 'pix' ? Icons.pix : Icons.credit_card,
+                ),
+                label: Text(
+                  paymentMode == 'pix'
+                      ? 'Pagamento disponível: Pix'
+                      : 'Pagamento disponível: cartão',
+                ),
+              ),
+              const SizedBox(height: 18),
+            ] else ...[
+              const Card(
+                child: ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('Pagamentos temporariamente indisponíveis'),
+                  subtitle: Text('Tente novamente mais tarde.'),
+                ),
+              ),
+              const SizedBox(height: 18),
+            ],
             LayoutBuilder(builder: (context, constraints) {
               final width = constraints.maxWidth >= 760 ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth;
               return Wrap(spacing: 16, runSpacing: 16, children: plans.map((plan) => SizedBox(width: width, child: _PlanCard(plan: plan, current: plan['code'] == currentCode, acting: acting, onTap: () => _choose(plan)))).toList());
@@ -272,7 +341,14 @@ class _StateCard extends StatelessWidget {
       );
 }
 
-Map<String, dynamic>? _map(dynamic value) => value is Map ? value.cast<String, dynamic>() : null;
+Map<String, dynamic>? _map(dynamic value) =>
+    value is Map ? value.cast<String, dynamic>() : null;
+Map<String, bool> _boolMap(dynamic value) {
+  if (value is! Map) return const {};
+  return value.map(
+    (key, enabled) => MapEntry(key.toString(), enabled == true),
+  );
+}
 List<Map<String, dynamic>> _items(dynamic value) => (value as List? ?? const []).whereType<Map>().map((item) => item.cast<String, dynamic>()).toList();
 String _money(dynamic value) => 'R\$ ${(num.tryParse(value?.toString() ?? '') ?? 0).toStringAsFixed(2).replaceFirst('.', ',')}';
 Map<String, dynamic> _qaPlan(String code, String name, String audience, double regular, double launch, int services, int categories, {bool highlight = false}) => {'code': code, 'name': name, 'audience': audience, 'currency': 'BRL', 'regularPrice': regular, 'launchPrice': launch, 'currentPrice': launch, 'promotionActive': true, 'features': {'serviceLimit': services, 'categoryLimit': categories, 'metricsLevel': highlight ? 'advanced' : 'basic', 'commercialHighlight': highlight, 'businessProfile': highlight}};
