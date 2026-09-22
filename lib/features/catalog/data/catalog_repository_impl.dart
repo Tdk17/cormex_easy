@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
@@ -11,6 +14,11 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   final AppEnvironment environment;
   final ApiClient apiClient;
+
+  String get _homeCacheKey =>
+      'cormex_easy.' + environment.flavor.name + '.catalog_home.v1';
+  String get _searchCacheKey =>
+      'cormex_easy.' + environment.flavor.name + '.catalog_search.v1';
 
   @override
   Future<CatalogHomeData> loadHome({
@@ -25,16 +33,30 @@ class CatalogRepositoryImpl implements CatalogRepository {
         categories: QaCatalogData.categories,
         providers: QaCatalogData.providers,
         bannerTitle: 'O serviço certo, perto de você.',
-        bannerSubtitle: 'Encontre profissionais locais ou anuncie o que você faz.',
+        bannerSubtitle:
+            'Encontre profissionais locais ou anuncie o que você faz.',
         reviewsEnabled: true,
       );
     }
-    final json = await apiClient.runFunction('v1-home-get', params: {
-      if (city != null && city.isNotEmpty) 'city': city,
-      if (state != null && state.isNotEmpty) 'state': state,
-      if (lat != null) 'latitude': lat,
-      if (lng != null) 'longitude': lng,
-    });
+
+    final fingerprint = _locationFingerprint(city, state, lat, lng);
+    late Map<String, dynamic> json;
+    var isFromCache = false;
+    try {
+      json = await apiClient.runFunction('v1-home-get', params: {
+        if (city != null && city.isNotEmpty) 'city': city,
+        if (state != null && state.isNotEmpty) 'state': state,
+        if (lat != null) 'latitude': lat,
+        if (lng != null) 'longitude': lng,
+      });
+      await _writeCache(_homeCacheKey, fingerprint, json);
+    } catch (_) {
+      final cached = await _readCache(_homeCacheKey, fingerprint);
+      if (cached == null) rethrow;
+      json = cached;
+      isFromCache = true;
+    }
+
     final categories = (json['categories'] as List? ?? [])
         .whereType<Map>()
         .map((e) => ServiceCategory.fromJson(e.cast<String, dynamic>()))
@@ -45,7 +67,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
         .toList();
     final banner = (json['banner'] as Map?)?.cast<String, dynamic>() ?? {};
     final flags = (json['featureFlags'] as Map?)?.cast<String, dynamic>() ?? {};
-    _trackImpressions(providers);
+    if (!isFromCache) _trackImpressions(providers);
     return CatalogHomeData(
       categories: categories,
       providers: providers,
@@ -54,6 +76,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
           ? banner['subtitle'].toString()
           : 'Profissionais de confiança para resolver o que você precisa.',
       reviewsEnabled: flags['reviews'] == true,
+      isFromCache: isFromCache,
     );
   }
 
@@ -85,27 +108,141 @@ class CatalogRepositoryImpl implements CatalogRepository {
         final matchesCategory = categorySlug == null ||
             categorySlug.isEmpty ||
             provider.category.slug == categorySlug;
-        final haystack = '${provider.displayName} ${provider.category.name} '
-                '${provider.services.join(' ')} ${provider.city}'
+        final haystack = (provider.displayName +
+                ' ' +
+                provider.category.name +
+                ' ' +
+                provider.services.join(' ') +
+                ' ' +
+                provider.city)
             .toLowerCase();
         return matchesCategory && (needle.isEmpty || haystack.contains(needle));
       }).toList();
     }
-    final json = await apiClient.runFunction('v1-providers-search', params: {
-      if (query.isNotEmpty) 'query': query,
-      if (categorySlug != null && categorySlug.isNotEmpty)
-        'categorySlug': categorySlug,
-      if (city != null && city.isNotEmpty) 'city': city,
-      if (state != null && state.isNotEmpty) 'state': state,
-      if (lat != null) 'latitude': lat,
-      if (lng != null) 'longitude': lng,
-    });
+
+    final locationFingerprint =
+        _locationFingerprint(city, state, lat, lng);
+    final searchFingerprint = [
+      query.trim().toLowerCase(),
+      categorySlug ?? '',
+      locationFingerprint,
+    ].join('|');
+    late Map<String, dynamic> json;
+    var isFromCache = false;
+    try {
+      json = await apiClient.runFunction('v1-providers-search', params: {
+        if (query.isNotEmpty) 'query': query,
+        if (categorySlug != null && categorySlug.isNotEmpty)
+          'categorySlug': categorySlug,
+        if (city != null && city.isNotEmpty) 'city': city,
+        if (state != null && state.isNotEmpty) 'state': state,
+        if (lat != null) 'latitude': lat,
+        if (lng != null) 'longitude': lng,
+      });
+      await _writeCache(_searchCacheKey, searchFingerprint, json);
+    } catch (_) {
+      json = await _readCache(_searchCacheKey, searchFingerprint) ??
+          await _searchHomeCache(
+            query: query,
+            categorySlug: categorySlug,
+            locationFingerprint: locationFingerprint,
+          ) ??
+          (throw StateError('Nenhum catálogo salvo para esta localização.'));
+      isFromCache = true;
+    }
+
     final providers = (json['items'] as List? ?? [])
         .whereType<Map>()
         .map((e) => ProviderProfile.fromJson(e.cast<String, dynamic>()))
         .toList();
-    _trackImpressions(providers);
+    if (!isFromCache) _trackImpressions(providers);
     return providers;
+  }
+
+  Future<Map<String, dynamic>?> _searchHomeCache({
+    required String query,
+    required String? categorySlug,
+    required String locationFingerprint,
+  }) async {
+    final home = await _readCache(_homeCacheKey, locationFingerprint);
+    if (home == null) return null;
+    final needle = query.trim().toLowerCase();
+    final items = (home['providers'] as List? ?? []).whereType<Map>().where(
+      (raw) {
+        final provider = raw.cast<String, dynamic>();
+        final category =
+            (provider['category'] as Map?)?.cast<String, dynamic>() ?? {};
+        final matchesCategory = categorySlug == null ||
+            categorySlug.isEmpty ||
+            category['slug']?.toString() == categorySlug;
+        final location =
+            (provider['location'] as Map?)?.cast<String, dynamic>() ?? {};
+        final services = (provider['services'] as List? ?? []).join(' ');
+        final haystack = [
+          provider['displayName'],
+          category['name'],
+          services,
+          location['city'],
+        ].whereType<Object>().join(' ').toLowerCase();
+        return matchesCategory &&
+            (needle.isEmpty || haystack.contains(needle));
+      },
+    ).toList();
+    return {'items': items};
+  }
+
+  String _locationFingerprint(
+    String? city,
+    String? state,
+    double? lat,
+    double? lng,
+  ) {
+    if (lat != null && lng != null) {
+      return 'gps:' + lat.toStringAsFixed(2) + ',' + lng.toStringAsFixed(2);
+    }
+    final cityPart = city?.trim().toLowerCase() ?? '';
+    final statePart = state?.trim().toUpperCase() ?? '';
+    if (cityPart.isEmpty && statePart.isEmpty) return 'none';
+    return 'manual:' + cityPart + '|' + statePart;
+  }
+
+  Future<void> _writeCache(
+    String key,
+    String fingerprint,
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(
+        key,
+        jsonEncode({
+          'fingerprint': fingerprint,
+          'savedAt': DateTime.now().toIso8601String(),
+          'payload': payload,
+        }),
+      );
+    } catch (_) {
+      // Falha de cache não pode bloquear o catálogo online.
+    }
+  }
+
+  Future<Map<String, dynamic>?> _readCache(
+    String key,
+    String fingerprint,
+  ) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final raw = preferences.getString(key);
+      if (raw == null || raw.isEmpty) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return null;
+      final envelope = decoded.cast<String, dynamic>();
+      if (envelope['fingerprint']?.toString() != fingerprint) return null;
+      final payload = envelope['payload'];
+      return payload is Map ? payload.cast<String, dynamic>() : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   void _trackImpressions(List<ProviderProfile> providers) {
@@ -124,7 +261,12 @@ class CatalogRepositoryImpl implements CatalogRepository {
       await apiClient.runFunction('v1-providers-track-event', params: {
         'providerPublicId': provider.id,
         'eventType': 'card_impression',
-        'eventId': 'card_impression_${provider.id}_${batch}_$index',
+        'eventId': 'card_impression_' +
+            provider.id +
+            '_' +
+            batch.toString() +
+            '_' +
+            index.toString(),
         'source': 'web',
       });
     } catch (_) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:signals/signals.dart';
 
 import '../../../core/config/app_environment.dart';
@@ -35,10 +37,13 @@ class CatalogStore {
   final latitude = signal<double?>(null);
   final longitude = signal<double?>(null);
   final usingCurrentLocation = signal(false);
+  final autoLocationEnabled = signal(false);
   final locationMessage = signal(
     'Localização não definida. Use o GPS ou informe sua cidade.',
   );
   final errorMessage = signal<String?>(null);
+
+  bool _refreshingLocation = false;
 
   bool get hasLocation =>
       usingCurrentLocation.value || city.value.trim().isNotEmpty;
@@ -65,8 +70,25 @@ class CatalogStore {
       query.value.trim().isNotEmpty || selectedCategory.value != null;
 
   Future<void> initialize() async {
+    final savedLocation = await _locationService.loadSavedLocation();
+    if (savedLocation != null) _restoreLocation(savedLocation);
     favoriteIds.value = await _favorites.load();
     await loadHome();
+    if (autoLocationEnabled.value) {
+      unawaited(refreshCurrentLocation());
+    }
+  }
+
+  void _restoreLocation(SavedLocation saved) {
+    city.value = saved.city.trim();
+    state.value = saved.state.trim().toUpperCase();
+    latitude.value = saved.latitude;
+    longitude.value = saved.longitude;
+    usingCurrentLocation.value = saved.hasCoordinates;
+    autoLocationEnabled.value = saved.autoRefresh;
+    locationMessage.value = city.value.isEmpty
+        ? 'Última localização salva no aparelho.'
+        : 'Última localização salva: $locationLabel';
   }
 
   Future<void> loadHome({bool refresh = false}) async {
@@ -84,6 +106,11 @@ class CatalogStore {
         lng: usingCurrentLocation.value ? longitude.value : null,
       );
       home.value = data;
+      if (data.isFromCache) {
+        locationMessage.value = hasLocation
+            ? 'Sem conexão: mostrando resultados salvos de $locationLabel.'
+            : 'Sem conexão: mostrando os últimos resultados salvos.';
+      }
 
       if (hasActiveFilters) {
         final items = await _fetchFilteredProviders();
@@ -144,41 +171,112 @@ class CatalogStore {
     );
   }
 
-  Future<void> useCurrentLocation() async {
-    locationMessage.value = 'Buscando sua localização…';
-    final result = await _locationService.requestCurrentPosition();
-    switch (result.type) {
-      case LocationResultType.success:
-        if (result.latitude == null || result.longitude == null) {
-          _clearCoordinates();
-          locationMessage.value =
-              'Não encontramos sua localização. Escolha uma cidade.';
+  Future<void> useCurrentLocation() {
+    return _updateCurrentLocation(
+      requestPermission: true,
+      enableAutoRefresh: true,
+      silent: false,
+    );
+  }
+
+  Future<void> refreshCurrentLocation() {
+    return _updateCurrentLocation(
+      requestPermission: false,
+      enableAutoRefresh: false,
+      silent: true,
+    );
+  }
+
+  Future<void> _updateCurrentLocation({
+    required bool requestPermission,
+    required bool enableAutoRefresh,
+    required bool silent,
+  }) async {
+    if (_refreshingLocation) return;
+    _refreshingLocation = true;
+    if (!silent) locationMessage.value = 'Buscando sua localização…';
+    try {
+      final result = await _locationService.requestCurrentPosition(
+        requestPermission: requestPermission,
+      );
+      switch (result.type) {
+        case LocationResultType.success:
+          await _applyCurrentLocation(
+            result,
+            enableAutoRefresh: enableAutoRefresh,
+            silent: silent,
+          );
           return;
-        }
-        latitude.value = result.latitude;
-        longitude.value = result.longitude;
-        city.value = result.city?.trim() ?? '';
-        state.value = result.state?.trim().toUpperCase() ?? '';
-        usingCurrentLocation.value = true;
-        locationMessage.value = city.value.isEmpty
-            ? 'GPS ativo, mas não identificamos a cidade. '
-                'Você pode informá-la manualmente.'
-            : 'Localização detectada: $locationLabel';
-        await loadHome(refresh: true);
-      case LocationResultType.denied:
-      case LocationResultType.deniedForever:
-        _clearCoordinates();
-        locationMessage.value =
-            'Localização não autorizada. Escolha uma cidade.';
-      case LocationResultType.disabled:
-        _clearCoordinates();
-        locationMessage.value =
-            'Ative a localização ou escolha uma cidade.';
-      case LocationResultType.error:
-        _clearCoordinates();
-        locationMessage.value =
-            'Não encontramos sua localização. Escolha uma cidade.';
+        case LocationResultType.denied:
+        case LocationResultType.deniedForever:
+          if (!silent) {
+            locationMessage.value =
+                'Localização não autorizada. Informe uma cidade.';
+          }
+          return;
+        case LocationResultType.disabled:
+          if (!silent) {
+            locationMessage.value =
+                'Ative a localização ou informe uma cidade.';
+          }
+          return;
+        case LocationResultType.error:
+          if (!silent) {
+            locationMessage.value =
+                'Não encontramos sua localização. Informe uma cidade.';
+          }
+          return;
+      }
+    } finally {
+      _refreshingLocation = false;
     }
+  }
+
+  Future<void> _applyCurrentLocation(
+    LocationResult result, {
+    required bool enableAutoRefresh,
+    required bool silent,
+  }) async {
+    if (result.latitude == null || result.longitude == null) {
+      if (!silent) {
+        locationMessage.value =
+            'Não encontramos sua localização. Informe uma cidade.';
+      }
+      return;
+    }
+
+    final resolvedCity = result.city?.trim() ?? '';
+    if (resolvedCity.isEmpty && hasLocation) {
+      if (!silent) {
+        locationMessage.value =
+            'Sem internet: mantendo a última localização salva, '
+            '$locationLabel.';
+      }
+      return;
+    }
+
+    latitude.value = result.latitude;
+    longitude.value = result.longitude;
+    city.value = resolvedCity;
+    state.value = result.state?.trim().toUpperCase() ?? '';
+    usingCurrentLocation.value = true;
+    if (enableAutoRefresh) autoLocationEnabled.value = true;
+
+    await _locationService.saveLocation(
+      SavedLocation(
+        city: city.value,
+        state: state.value,
+        latitude: latitude.value,
+        longitude: longitude.value,
+        updatedAt: DateTime.now(),
+        autoRefresh: autoLocationEnabled.value,
+      ),
+    );
+
+    locationMessage.value = city.value.isEmpty
+        ? 'GPS ativo. A cidade será atualizada quando a internet voltar.'
+        : 'Localização atualizada automaticamente: $locationLabel';
+    await loadHome(refresh: true);
   }
 
   Future<void> setCity(String value) async {
@@ -191,6 +289,15 @@ class CatalogStore {
     city.value = parts.first;
     state.value = parts.length > 1 ? parts.last.toUpperCase() : '';
     _clearCoordinates();
+    autoLocationEnabled.value = false;
+    await _locationService.saveLocation(
+      SavedLocation(
+        city: city.value,
+        state: state.value,
+        updatedAt: DateTime.now(),
+        autoRefresh: false,
+      ),
+    );
     locationMessage.value = 'Resultados para $locationLabel';
     await loadHome(refresh: true);
   }
@@ -212,8 +319,10 @@ class CatalogStore {
         await _apiClient.runFunction('v1-providers-track-event', params: {
           'providerPublicId': providerId,
           'eventType': 'favorite_add',
-          'eventId':
-              'favorite_add_${providerId}_${DateTime.now().microsecondsSinceEpoch}',
+          'eventId': 'favorite_add_' +
+              providerId +
+              '_' +
+              DateTime.now().microsecondsSinceEpoch.toString(),
           'source': 'web',
         });
       } catch (_) {

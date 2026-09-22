@@ -111,6 +111,7 @@ class CatalogHomeData {
     required this.bannerTitle,
     required this.bannerSubtitle,
     this.reviewsEnabled = false,
+    this.isFromCache = false,
   });
 
   final List<ServiceCategory> categories;
@@ -118,6 +119,7 @@ class CatalogHomeData {
   final String bannerTitle;
   final String bannerSubtitle;
   final bool reviewsEnabled;
+  final bool isFromCache;
 }
 
 enum SubscriptionStatus {

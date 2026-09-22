@@ -56,7 +56,7 @@ void main() {
     );
   });
 
-  test('atualização do PWA limpa cache antigo sem interceptar a aplicação', () {
+  test('PWA prioriza a rede e mantém uma cópia para uso offline', () {
     final installer = File('web/pwa_install.js').readAsStringSync();
     final worker =
         File('web/cormex_service_worker.js').readAsStringSync();
@@ -65,13 +65,15 @@ void main() {
 
     expect(installer, contains('beforeinstallprompt'));
     expect(installer, contains('appinstalled'));
-    expect(installer, contains('cormex_service_worker.js?v=2'));
+    expect(installer, contains('cormex_service_worker.js?v=3'));
     expect(installer, contains('controllerchange'));
     expect(worker, contains("self.addEventListener('install'"));
     expect(worker, contains("self.addEventListener('activate'"));
+    expect(worker, contains("self.addEventListener('fetch'"));
+    expect(worker, contains('event.respondWith'));
+    expect(worker, contains('ignoreSearch: true'));
     expect(worker, contains('caches.delete'));
-    expect(worker, isNot(contains("self.addEventListener('fetch'")));
-    expect(worker, isNot(contains('event.respondWith')));
+    expect(worker, contains("cache: 'reload'"));
     expect(bootstrap, contains('{{flutter_js}}'));
     expect(bootstrap, contains('{{flutter_build_config}}'));
     expect(bootstrap, contains('_flutter.loader.load()'));

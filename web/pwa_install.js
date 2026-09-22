@@ -37,7 +37,7 @@
 
     try {
       const workerUrl = new URL(
-        'cormex_service_worker.js?v=2',
+        'cormex_service_worker.js?v=3',
         document.baseURI,
       );
       const registration = await navigator.serviceWorker.register(workerUrl);

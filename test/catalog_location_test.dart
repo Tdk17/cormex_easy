@@ -108,6 +108,37 @@ void main() {
     expect(repository.searchLatitude, isNull);
     expect(repository.searchLongitude, isNull);
   });
+  test('salva a localização e atualiza sem pedir permissão novamente', () async {
+    final repository = _FakeCatalogRepository();
+    final api = ApiClient(environment);
+    final location = _FakeLocationService(
+      const LocationResult(
+        LocationResultType.success,
+        latitude: -26.3044,
+        longitude: -48.8487,
+        city: 'Joinville',
+        state: 'SC',
+      ),
+    );
+    final store = CatalogStore(
+      repository,
+      FavoritesService(environment, api),
+      location,
+      environment,
+      api,
+    );
+
+    await store.useCurrentLocation();
+    await store.refreshCurrentLocation();
+
+    final saved = await location.loadSavedLocation();
+    expect(location.requestPermissionCalls, [true, false]);
+    expect(store.autoLocationEnabled.value, isTrue);
+    expect(saved?.city, 'Joinville');
+    expect(saved?.state, 'SC');
+    expect(saved?.autoRefresh, isTrue);
+  });
+
   test('categoria e pesquisa são aplicadas diretamente na Home', () async {
     final repository = _FakeCatalogRepository();
     final api = ApiClient(environment);
@@ -153,9 +184,15 @@ class _FakeLocationService extends LocationService {
   _FakeLocationService(this.result);
 
   final LocationResult result;
+  final requestPermissionCalls = <bool>[];
 
   @override
-  Future<LocationResult> requestCurrentPosition() async => result;
+  Future<LocationResult> requestCurrentPosition({
+    bool requestPermission = true,
+  }) async {
+    requestPermissionCalls.add(requestPermission);
+    return result;
+  }
 }
 
 class _FakeCatalogRepository implements CatalogRepository {
