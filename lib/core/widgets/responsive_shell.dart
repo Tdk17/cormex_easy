@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -140,28 +138,29 @@ class _MobileFloatingNavigation extends StatelessWidget {
         heightFactor: 1,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 430),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: Container(
-                key: const Key('mobile-floating-navigation'),
-                height: 70,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                decoration: BoxDecoration(
-                  color: const Color(0xE6111114),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: .15),
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x66000000),
-                      blurRadius: 28,
-                      offset: Offset(0, 12),
-                    ),
-                  ],
+          child: RepaintBoundary(
+            child: Container(
+              key: const Key('mobile-floating-navigation'),
+              height: 70,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              decoration: BoxDecoration(
+                color: const Color(0xFA111114),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: .13),
                 ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x44000000),
+                    blurRadius: 16,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(24),
+                clipBehavior: Clip.antiAlias,
                 child: Row(
                   children: [
                     for (var index = 0; index < destinations.length; index++)
@@ -204,20 +203,21 @@ class _MobileNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        button: true,
-        selected: selected,
-        label: label,
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: Tooltip(
+        message: label,
         child: InkWell(
           onTap: onTap,
-          customBorder: const CircleBorder(),
+          enableFeedback: true,
+          borderRadius: BorderRadius.circular(22),
           child: Center(
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              width: selected ? 58 : 48,
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOut,
+              width: selected ? 58 : 50,
               height: 54,
               decoration: BoxDecoration(
                 gradient: selected
@@ -232,15 +232,6 @@ class _MobileNavItem extends StatelessWidget {
                     ? Border.all(
                         color: AppColors.gold.withValues(alpha: .55),
                       )
-                    : null,
-                boxShadow: selected
-                    ? const [
-                        BoxShadow(
-                          color: Color(0x557A1830),
-                          blurRadius: 16,
-                          offset: Offset(0, 7),
-                        ),
-                      ]
                     : null,
               ),
               child: Stack(

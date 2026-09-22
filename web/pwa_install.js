@@ -2,6 +2,7 @@
   'use strict';
 
   let deferredPrompt = null;
+  let reloadingForWorkerUpdate = false;
   const stateEvent = 'cormex-pwa-state-changed';
 
   const notifyStateChanged = () => {
@@ -26,9 +27,23 @@
       return;
     }
 
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloadingForWorkerUpdate) {
+        return;
+      }
+      reloadingForWorkerUpdate = true;
+      window.location.reload();
+    });
+
     try {
-      const workerUrl = new URL('cormex_service_worker.js', document.baseURI);
+      const workerUrl = new URL(
+        'cormex_service_worker.js?v=2',
+        document.baseURI,
+      );
       const registration = await navigator.serviceWorker.register(workerUrl);
+      if (registration.waiting) {
+        registration.waiting.postMessage('SKIP_WAITING');
+      }
       await registration.update();
     } catch (error) {
       console.warn('CormeX Easy: service worker indisponível.', error);
