@@ -13,35 +13,48 @@ import '../../features/system/data/system_bootstrap_service.dart';
 import '../../features/system/presentation/error_page.dart';
 import '../../features/system/presentation/legal_page.dart';
 import '../../features/system/presentation/maintenance_page.dart';
+import '../config/app_environment.dart';
+import '../network/api_client.dart';
 import '../widgets/responsive_shell.dart';
 
 class AppRouter {
-  AppRouter(this.system);
+  AppRouter(this.system, this.environment, this.apiClient);
 
   final SystemBootstrapService system;
+  final AppEnvironment environment;
+  final ApiClient apiClient;
 
   late final GoRouter router = GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
-      if (!system.maintenanceEnabled ||
-          state.matchedLocation == '/manutencao') {
-        return null;
+      if (system.maintenanceEnabled &&
+          state.matchedLocation != '/manutencao') {
+        const publicRoutes = {
+          '/',
+          '/explorar',
+          '/categorias',
+          '/privacidade',
+          '/termos',
+        };
+        final publicDetail =
+            state.matchedLocation.startsWith('/prestador/') ||
+            state.matchedLocation.startsWith('/categoria/');
+        if (!system.allowPublicRead ||
+            (!publicRoutes.contains(state.matchedLocation) && !publicDetail)) {
+          return '/manutencao';
+        }
       }
-      const publicRoutes = {
-        '/',
-        '/explorar',
-        '/categorias',
-        '/privacidade',
-        '/termos',
-      };
-      final publicDetail =
-          state.matchedLocation.startsWith('/prestador/') ||
-          state.matchedLocation.startsWith('/categoria/');
-      if (system.allowPublicRead &&
-          (publicRoutes.contains(state.matchedLocation) || publicDetail)) {
-        return null;
+
+      final signedIn =
+          environment.useQaData || apiClient.sessionToken?.isNotEmpty == true;
+      const protectedRoutes = {'/conta', '/meu-anuncio', '/planos'};
+      if (!signedIn && protectedRoutes.contains(state.matchedLocation)) {
+        return Uri(
+          path: '/entrar',
+          queryParameters: {'next': state.uri.toString()},
+        ).toString();
       }
-      return '/manutencao';
+      return null;
     },
     errorBuilder: (context, state) => const ResponsiveShell(
       location: '/erro/404',
@@ -117,11 +130,13 @@ class AppRouter {
           ),
           GoRoute(
             path: '/entrar',
-            builder: (context, state) => const LoginPage(),
+            builder: (context, state) => LoginPage(
+              nextPath: state.uri.queryParameters['next'] ?? '/conta',
+            ),
           ),
           GoRoute(
             path: '/cadastro',
-            redirect: (context, state) => '/anunciar',
+            redirect: (context, state) => '/conta',
           ),
           GoRoute(
             path: '/conta',

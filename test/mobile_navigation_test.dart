@@ -13,7 +13,7 @@ void _setScreenSize(WidgetTester tester, Size size) {
 }
 
 void main() {
-  testWidgets('mobile usa navegação leve com quatro destinos',
+  testWidgets('mobile usa navegação leve com três destinos',
       (tester) async {
     _setScreenSize(tester, const Size(390, 844));
 
@@ -31,7 +31,7 @@ void main() {
     expect(find.byType(BackdropFilter), findsNothing);
     expect(find.byTooltip('Início'), findsOneWidget);
     expect(find.byTooltip('Explorar'), findsNothing);
-    expect(find.byTooltip('Anunciar'), findsOneWidget);
+    expect(find.byTooltip('Anunciar'), findsNothing);
     expect(find.byTooltip('Favoritos'), findsOneWidget);
     expect(find.byTooltip('Conta'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -42,7 +42,7 @@ void main() {
     _setScreenSize(tester, const Size(390, 844));
 
     final router = GoRouter(
-      initialLocation: '/anunciar',
+      initialLocation: '/favoritos',
       routes: [
         ShellRoute(
           builder: (context, state, child) => ResponsiveShell(
@@ -56,19 +56,14 @@ void main() {
                   const Center(child: Text('destino-0')),
             ),
             GoRoute(
-              path: '/anunciar',
+              path: '/favoritos',
               builder: (context, state) =>
                   const Center(child: Text('destino-1')),
             ),
             GoRoute(
-              path: '/favoritos',
-              builder: (context, state) =>
-                  const Center(child: Text('destino-2')),
-            ),
-            GoRoute(
               path: '/conta',
               builder: (context, state) =>
-                  const Center(child: Text('destino-3')),
+                  const Center(child: Text('destino-2')),
             ),
           ],
         ),
@@ -79,7 +74,7 @@ void main() {
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
     await tester.pumpAndSettle();
 
-    for (var index = 0; index < 4; index++) {
+    for (var index = 0; index < 3; index++) {
       await tester.tap(find.byKey(Key('mobile-nav-item-$index')));
       await tester.pumpAndSettle();
 
@@ -99,14 +94,14 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: ResponsiveShell(
-          location: '/anunciar',
+          location: '/conta',
           child: SizedBox.expand(),
         ),
       ),
     );
 
     expect(find.byKey(const Key('mobile-floating-navigation')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-nav-item-1')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-nav-item-2')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -126,7 +121,7 @@ void main() {
     expect(find.byKey(const Key('mobile-floating-navigation')), findsNothing);
     expect(find.text('Início'), findsOneWidget);
     expect(find.text('Explorar'), findsNothing);
-    expect(find.text('Anunciar'), findsOneWidget);
+    expect(find.text('Anunciar'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

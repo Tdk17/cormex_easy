@@ -73,7 +73,7 @@ class CatalogStore {
     final savedLocation = await _locationService.loadSavedLocation();
     if (savedLocation != null) _restoreLocation(savedLocation);
     favoriteIds.value = await _favorites.load();
-    await loadHome();
+    unawaited(loadHome());
     if (autoLocationEnabled.value) {
       unawaited(refreshCurrentLocation());
     }

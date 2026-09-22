@@ -2,7 +2,6 @@
   'use strict';
 
   let deferredPrompt = null;
-  let reloadingForWorkerUpdate = false;
   const stateEvent = 'cormex-pwa-state-changed';
 
   const notifyStateChanged = () => {
@@ -20,34 +19,6 @@
     const ipadDesktopMode = window.navigator.platform === 'MacIntel' &&
       window.navigator.maxTouchPoints > 1;
     return classicIos || ipadDesktopMode;
-  };
-
-  const registerServiceWorker = async () => {
-    if (!('serviceWorker' in navigator) || !window.isSecureContext) {
-      return;
-    }
-
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (reloadingForWorkerUpdate) {
-        return;
-      }
-      reloadingForWorkerUpdate = true;
-      window.location.reload();
-    });
-
-    try {
-      const workerUrl = new URL(
-        'cormex_service_worker.js?v=3',
-        document.baseURI,
-      );
-      const registration = await navigator.serviceWorker.register(workerUrl);
-      if (registration.waiting) {
-        registration.waiting.postMessage('SKIP_WAITING');
-      }
-      await registration.update();
-    } catch (error) {
-      console.warn('CormeX Easy: service worker indisponível.', error);
-    }
   };
 
   window.addEventListener('beforeinstallprompt', (event) => {
@@ -79,11 +50,4 @@
     },
   });
 
-  if (document.readyState === 'complete') {
-    void registerServiceWorker();
-  } else {
-    window.addEventListener('load', () => void registerServiceWorker(), {
-      once: true,
-    });
-  }
 })();

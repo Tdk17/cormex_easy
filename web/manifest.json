@@ -62,10 +62,10 @@
       ]
     },
     {
-      "name": "Anunciar meu serviço",
-      "short_name": "Anunciar",
-      "description": "Crie ou gerencie seu anúncio.",
-      "url": "./#/anunciar",
+      "name": "Meu perfil profissional",
+      "short_name": "Meu perfil",
+      "description": "Cadastre ou gerencie o seu serviço.",
+      "url": "./#/conta",
       "icons": [
         {
           "src": "icons/Icon-192.png",

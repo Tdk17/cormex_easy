@@ -7,7 +7,7 @@
   <meta name="description" content="Encontre serviços próximos de você ou anuncie o seu serviço no CormeX Easy.">
   <meta name="application-name" content="CormeX Easy">
   <meta name="theme-color" content="#7A1830">
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="dark">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,9 +18,78 @@
   <link rel="apple-touch-icon" sizes="192x192" href="icons/Icon-192.png">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <title>CormeX Easy — serviços perto de você</title>
+  <style>
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #170308;
+    }
+    #cormex-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 999999;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      background:
+        radial-gradient(circle at 70% 20%, rgba(122, 24, 48, .52), transparent 38%),
+        linear-gradient(145deg, #170308, #09090b);
+      transition: opacity .25s ease;
+    }
+    .flutter-ready #cormex-splash {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .cormex-splash-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .cormex-splash-logo {
+      display: grid;
+      width: 82px;
+      height: 82px;
+      place-items: center;
+      border-radius: 50%;
+      background: #7a1830;
+      color: #fff;
+      font-size: 30px;
+      font-weight: 900;
+      box-shadow: 0 0 44px rgba(122, 24, 48, .68);
+    }
+    .cormex-splash-title {
+      margin-top: 10px;
+      font-size: 25px;
+      font-weight: 900;
+    }
+    .cormex-splash-subtitle {
+      color: rgba(255, 255, 255, .72);
+      font-size: 14px;
+    }
+    .cormex-splash-spinner {
+      width: 22px;
+      height: 22px;
+      margin-top: 14px;
+      border: 3px solid rgba(255, 255, 255, .18);
+      border-top-color: #d8a84e;
+      border-radius: 50%;
+      animation: cormex-spin .8s linear infinite;
+    }
+    @keyframes cormex-spin { to { transform: rotate(360deg); } }
+  </style>
   <script src="pwa_install.js"></script>
 </head>
 <body>
+  <div id="cormex-splash" role="status" aria-live="polite">
+    <div class="cormex-splash-content">
+      <div class="cormex-splash-logo">Cx</div>
+      <div class="cormex-splash-title">CormeX Easy</div>
+      <div class="cormex-splash-subtitle">Preparando serviços perto de você</div>
+      <div class="cormex-splash-spinner" aria-hidden="true"></div>
+    </div>
+  </div>
   <noscript>Ative o JavaScript para usar o CormeX Easy.</noscript>
   <script src="flutter_bootstrap.js" async></script>
 </body>

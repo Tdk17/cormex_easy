@@ -10,7 +10,9 @@ import '../../catalog/data/favorites_service.dart';
 import '../../catalog/presentation/catalog_store.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, this.nextPath = '/conta'});
+
+  final String nextPath;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -51,7 +53,13 @@ class _LoginPageState extends State<LoginPage> {
       }
       final syncedFavorites = await getIt<FavoritesService>().load();
       getIt<CatalogStore>().favoriteIds.value = syncedFavorites;
-      if (mounted) context.go('/conta');
+      if (mounted) {
+        final next = widget.nextPath.startsWith('/') &&
+                !widget.nextPath.startsWith('//')
+            ? widget.nextPath
+            : '/conta';
+        context.go(next);
+      }
     } catch (error) {
       if (mounted) {
         final message = error is ApiException

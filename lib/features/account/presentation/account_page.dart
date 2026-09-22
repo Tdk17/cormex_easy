@@ -127,6 +127,7 @@ class _AccountPageState extends State<AccountPage> {
   Widget build(BuildContext context) {
     if (loading) return const Center(child: CircularProgressIndicator());
     final signedIn = user != null;
+    final hasProviderProfile = user?['hasProviderProfile'] == true;
     return PageWidth(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 26, 20, 48),
@@ -135,7 +136,7 @@ class _AccountPageState extends State<AccountPage> {
           children: [
             Text('Sua conta', style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 8),
-            const Text('Dados pessoais e preferências ficam separados do anúncio comercial.'),
+            const Text('Sua conta, seu anúncio e seus planos em um só lugar.'),
             const SizedBox(height: 24),
             if (error != null && !signedIn)
               Padding(
@@ -213,8 +214,11 @@ class _AccountPageState extends State<AccountPage> {
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                   children: [
-                    _ActionCard(icon: Icons.add_business, title: 'Anunciar meu serviço', subtitle: 'Crie ou atualize seu perfil público.', onTap: () => context.go('/anunciar')),
-                    _ActionCard(icon: Icons.storefront, title: 'Gerenciar anúncio', subtitle: 'Edite informações, status e plano.', onTap: () => context.go('/meu-anuncio')),
+                    if (hasProviderProfile) ...[
+                      _ActionCard(icon: Icons.storefront, title: 'Meu perfil profissional', subtitle: 'Edite informações e disponibilidade.', onTap: () => context.go('/meu-anuncio')),
+                      _ActionCard(icon: Icons.workspace_premium_outlined, title: 'Plano do anúncio', subtitle: 'Consulte ou altere o seu plano.', onTap: () => context.go('/planos')),
+                    ] else
+                      _ActionCard(icon: Icons.add_business, title: 'Cadastrar meu serviço', subtitle: 'Crie seu perfil profissional.', onTap: () => context.go('/anunciar')),
                     _ActionCard(icon: Icons.favorite_outline, title: 'Favoritos', subtitle: 'Veja os perfis que salvou.', onTap: () => context.go('/favoritos')),
                   ],
                 );

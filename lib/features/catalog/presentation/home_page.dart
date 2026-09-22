@@ -217,6 +217,7 @@ class _HomePageState extends State<HomePage> {
                     locationMessage: store.locationMessage.value,
                     onCurrentLocation: store.useCurrentLocation,
                     onChooseCity: _chooseCity,
+                    onAdvertise: () => context.go('/anunciar'),
                   ),
                   const SizedBox(height: 26),
                   const SectionTitle('O que você precisa?'),
@@ -304,8 +305,6 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                     ),
-                  const SizedBox(height: 30),
-                  _AdvertiseBanner(onTap: () => context.go('/anunciar')),
                     ],
                   ),
                 );
@@ -328,6 +327,7 @@ class _Hero extends StatelessWidget {
     required this.locationMessage,
     required this.onCurrentLocation,
     required this.onChooseCity,
+    required this.onAdvertise,
   });
 
   final String title;
@@ -338,6 +338,7 @@ class _Hero extends StatelessWidget {
   final String locationMessage;
   final VoidCallback onCurrentLocation;
   final VoidCallback onChooseCity;
+  final VoidCallback onAdvertise;
 
   @override
   Widget build(BuildContext context) {
@@ -405,6 +406,7 @@ class _Hero extends StatelessWidget {
                   locationMessage: locationMessage,
                   onCurrentLocation: onCurrentLocation,
                   onChooseCity: onChooseCity,
+                  onAdvertise: onAdvertise,
                   compact: compact,
                 );
                 if (!split) {
@@ -445,6 +447,7 @@ class _HeroContent extends StatelessWidget {
     required this.locationMessage,
     required this.onCurrentLocation,
     required this.onChooseCity,
+    required this.onAdvertise,
     required this.compact,
   });
 
@@ -456,6 +459,7 @@ class _HeroContent extends StatelessWidget {
   final String locationMessage;
   final VoidCallback onCurrentLocation;
   final VoidCallback onChooseCity;
+  final VoidCallback onAdvertise;
   final bool compact;
 
   @override
@@ -554,7 +558,60 @@ class _HeroContent extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: 14),
+        _ProviderInvite(onTap: onAdvertise),
       ],
+    );
+  }
+}
+
+class _ProviderInvite extends StatelessWidget {
+  const _ProviderInvite({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Cadastrar meu serviço',
+      child: Material(
+        color: Colors.white.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                const Icon(Icons.add_business_outlined, color: AppColors.gold),
+                const SizedBox(width: 11),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Você também presta serviços?',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Cadastre seu trabalho e seja encontrado na sua região.',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: Colors.white70),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -868,63 +925,6 @@ class _CategoryScrollButton extends StatelessWidget {
         color: AppColors.wine,
         iconSize: 20,
         icon: Icon(icon),
-      ),
-    );
-  }
-}
-
-class _AdvertiseBanner extends StatelessWidget {
-  const _AdvertiseBanner({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(26),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFF7E6), Color(0xFFFFECF0)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF0D9C9)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.wine.withValues(alpha: .06),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 20,
-        runSpacing: 16,
-        children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 620),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Seu trabalho merece ser encontrado.',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-                ),
-                SizedBox(height: 6),
-                Text('Crie seu perfil e fale diretamente com clientes da sua região.'),
-              ],
-            ),
-          ),
-          FilledButton.icon(
-            onPressed: onTap,
-            icon: const Icon(Icons.add_business),
-            label: const Text('Anunciar meu serviço'),
-          ),
-        ],
       ),
     );
   }

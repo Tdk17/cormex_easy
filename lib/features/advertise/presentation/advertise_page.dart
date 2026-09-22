@@ -138,7 +138,7 @@ class _AdvertisePageState extends State<AdvertisePage> {
         .where((part) => part.isNotEmpty)
         .toList();
     final cityName = cityParts.isEmpty ? '' : cityParts.first;
-    final stateCode = cityParts.length > 1 ? cityParts.last.toUpperCase() : 'SC';
+    final stateCode = cityParts.length > 1 ? cityParts.last.toUpperCase() : '';
     return {
       'providerType': providerTypes[providerType] ?? 'autonomous',
       'operationProfile': operations[operation] ?? 'solo',
@@ -459,7 +459,20 @@ class _BusinessStep extends StatelessWidget {
   final bool open24Hours;
   final ValueChanged<bool> onOpen24Hours;
 
-  String? _required(String? value) => (value ?? '').trim().isEmpty ? 'Campo obrigatório' : null;
+  String? _required(String? value) =>
+      (value ?? '').trim().isEmpty ? 'Campo obrigatório' : null;
+
+  String? _cityAndState(String? value) {
+    final parts = (value ?? '')
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.length < 2 || parts.first.isEmpty || parts.last.length != 2) {
+      return 'Informe no formato Cidade, UF';
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -519,8 +532,11 @@ class _BusinessStep extends StatelessWidget {
             ),
             TextFormField(
               controller: city,
-              validator: _required,
-              decoration: const InputDecoration(labelText: 'Cidade e estado'),
+              validator: _cityAndState,
+              decoration: const InputDecoration(
+                labelText: 'Cidade e estado',
+                hintText: 'Ex.: Blumenau, SC',
+              ),
             ),
           ];
           return wide

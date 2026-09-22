@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get_it/get_it.dart';
 
 import '../../features/catalog/data/catalog_repository_impl.dart';
@@ -12,7 +14,7 @@ import '../router/app_router.dart';
 
 final getIt = GetIt.instance;
 
-Future<void> configureDependencies() async {
+void registerDependencies() {
   if (getIt.isRegistered<AppEnvironment>()) return;
   final environment = AppEnvironment.fromDefines();
   getIt
@@ -38,10 +40,34 @@ Future<void> configureDependencies() async {
       () => SystemBootstrapService(environment, getIt<ApiClient>()),
     )
     ..registerLazySingleton(
-      () => AppRouter(getIt<SystemBootstrapService>()),
+      () => AppRouter(
+        getIt<SystemBootstrapService>(),
+        environment,
+        getIt<ApiClient>(),
+      ),
     );
+}
 
-  await getIt<ApiClient>().initialize();
-  await getIt<SystemBootstrapService>().initialize();
-  await getIt<CatalogStore>().initialize();
+Future<void> initializeDependencies() async {
+  try {
+    await getIt<ApiClient>().initialize().timeout(const Duration(seconds: 4));
+  } catch (_) {
+    // Uma preferência local indisponível não pode travar o aplicativo.
+  }
+
+  try {
+    await getIt<CatalogStore>().initialize().timeout(
+          const Duration(seconds: 4),
+        );
+  } catch (_) {
+    // A Home possui tratamento próprio de erro e permanece navegável.
+  }
+
+  // Configuração remota e catálogo são atualizados sem bloquear a navegação.
+  unawaited(getIt<SystemBootstrapService>().initialize());
+}
+
+Future<void> configureDependencies() async {
+  registerDependencies();
+  await initializeDependencies();
 }
