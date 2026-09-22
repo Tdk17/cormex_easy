@@ -76,6 +76,8 @@ class CatalogRepositoryImpl implements CatalogRepository {
     String? categorySlug,
     String? city,
     String? state,
+    double? lat,
+    double? lng,
   }) async {
     if (environment.useQaData) {
       final needle = query.trim().toLowerCase();
@@ -95,6 +97,8 @@ class CatalogRepositoryImpl implements CatalogRepository {
         'categorySlug': categorySlug,
       if (city != null && city.isNotEmpty) 'city': city,
       if (state != null && state.isNotEmpty) 'state': state,
+      if (lat != null) 'latitude': lat,
+      if (lng != null) 'longitude': lng,
     });
     final providers = (json['items'] as List? ?? [])
         .whereType<Map>()

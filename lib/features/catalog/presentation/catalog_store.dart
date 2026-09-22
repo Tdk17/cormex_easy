@@ -2,7 +2,6 @@ import 'package:signals/signals.dart';
 
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
-
 import '../data/favorites_service.dart';
 import '../data/location_service.dart';
 import '../domain/catalog_models.dart';
@@ -33,10 +32,18 @@ class CatalogStore {
   final selectedCategory = signal<String?>(null);
   final city = signal('Blumenau');
   final state = signal('SC');
-
-  String get locationLabel => '${city.value}, ${state.value}';
+  final latitude = signal<double?>(null);
+  final longitude = signal<double?>(null);
+  final usingCurrentLocation = signal(false);
   final locationMessage = signal('Informe sua região ou use sua localização');
   final errorMessage = signal<String?>(null);
+
+  String get locationLabel =>
+      usingCurrentLocation.value ? 'Localização atual' : '${city.value}, ${state.value}';
+
+  String get resultsLocationLabel => usingCurrentLocation.value
+      ? 'perto da sua localização atual'
+      : 'em ${city.value}, ${state.value}';
 
   Future<void> initialize() async {
     favoriteIds.value = await _favorites.load();
@@ -48,8 +55,10 @@ class CatalogStore {
     errorMessage.value = null;
     try {
       final data = await _repository.loadHome(
-        city: city.value,
-        state: state.value,
+        city: usingCurrentLocation.value ? null : city.value,
+        state: usingCurrentLocation.value ? null : state.value,
+        lat: usingCurrentLocation.value ? latitude.value : null,
+        lng: usingCurrentLocation.value ? longitude.value : null,
       );
       home.value = data;
       visibleProviders.value = data.providers;
@@ -64,12 +73,15 @@ class CatalogStore {
     if (value != null) query.value = value;
     if (categorySlug != null) selectedCategory.value = categorySlug;
     phase.value = LoadPhase.loading;
+    errorMessage.value = null;
     try {
       final items = await _repository.searchProviders(
         query: query.value,
         categorySlug: selectedCategory.value,
-        city: city.value,
-        state: state.value,
+        city: usingCurrentLocation.value ? null : city.value,
+        state: usingCurrentLocation.value ? null : state.value,
+        lat: usingCurrentLocation.value ? latitude.value : null,
+        lng: usingCurrentLocation.value ? longitude.value : null,
       );
       visibleProviders.value = items;
       phase.value = items.isEmpty ? LoadPhase.empty : LoadPhase.success;
@@ -84,38 +96,51 @@ class CatalogStore {
     final result = await _locationService.requestCurrentPosition();
     switch (result.type) {
       case LocationResultType.success:
-        locationMessage.value = 'Localização atual ativada';
-        phase.value = LoadPhase.loading;
-        try {
-          final data = await _repository.loadHome(
-            lat: result.latitude,
-            lng: result.longitude,
-          );
-          home.value = data;
-          visibleProviders.value = data.providers;
-          phase.value = data.providers.isEmpty
-              ? LoadPhase.empty
-              : LoadPhase.success;
-        } catch (_) {
-          phase.value = LoadPhase.error;
+        if (result.latitude == null || result.longitude == null) {
+          _clearCoordinates();
+          locationMessage.value =
+              'Não encontramos sua localização. Escolha uma cidade.';
+          return;
         }
+        latitude.value = result.latitude;
+        longitude.value = result.longitude;
+        usingCurrentLocation.value = true;
+        locationMessage.value = 'Localização atual ativada';
+        await loadHome(refresh: true);
       case LocationResultType.denied:
       case LocationResultType.deniedForever:
-        locationMessage.value = 'Localização não autorizada. Escolha uma cidade.';
+        _clearCoordinates();
+        locationMessage.value =
+            'Localização não autorizada. Escolha uma cidade.';
       case LocationResultType.disabled:
-        locationMessage.value = 'Ative a localização ou escolha uma cidade.';
+        _clearCoordinates();
+        locationMessage.value =
+            'Ative a localização ou escolha uma cidade.';
       case LocationResultType.error:
-        locationMessage.value = 'Não encontramos sua localização. Escolha uma cidade.';
+        _clearCoordinates();
+        locationMessage.value =
+            'Não encontramos sua localização. Escolha uma cidade.';
     }
   }
 
   Future<void> setCity(String value) async {
     if (value.trim().isEmpty) return;
-    final parts = value.split(',').map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
+    final parts = value
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
     city.value = parts.first;
     if (parts.length > 1) state.value = parts.last.toUpperCase();
+    _clearCoordinates();
     locationMessage.value = 'Resultados para $locationLabel';
     await loadHome(refresh: true);
+  }
+
+  void _clearCoordinates() {
+    latitude.value = null;
+    longitude.value = null;
+    usingCurrentLocation.value = false;
   }
 
   Future<void> toggleFavorite(String providerId) async {
@@ -129,7 +154,8 @@ class CatalogStore {
         await _apiClient.runFunction('v1-providers-track-event', params: {
           'providerPublicId': providerId,
           'eventType': 'favorite_add',
-          'eventId': 'favorite_add_${providerId}_${DateTime.now().microsecondsSinceEpoch}',
+          'eventId':
+              'favorite_add_${providerId}_${DateTime.now().microsecondsSinceEpoch}',
           'source': 'web',
         });
       } catch (_) {
@@ -140,4 +166,3 @@ class CatalogStore {
 
   bool isFavorite(String providerId) => favoriteIds.value.contains(providerId);
 }
-

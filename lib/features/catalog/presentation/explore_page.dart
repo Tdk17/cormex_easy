@@ -50,7 +50,7 @@ class _ExplorePageState extends State<ExplorePage> {
             children: [
               Text('Explorar serviços', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 8),
-              Text('Resultados em ${store.locationLabel}'),
+              Text('Resultados ${store.resultsLocationLabel}'),
               const SizedBox(height: 20),
               TextField(
                 controller: controller,

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -23,6 +25,16 @@ class ResponsiveShell extends StatelessWidget {
   ];
 
   int get _selectedIndex {
+    if (location.startsWith('/prestador') ||
+        location.startsWith('/categoria') ||
+        location.startsWith('/categorias')) {
+      return 1;
+    }
+    if (location.startsWith('/meu-anuncio') ||
+        location.startsWith('/planos')) {
+      return 2;
+    }
+    if (location.startsWith('/entrar')) return 4;
     final index = _destinations.indexWhere((item) {
       if (item.$1 == '/') return location == '/';
       return location.startsWith(item.$1);
@@ -33,7 +45,14 @@ class ResponsiveShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final desktop = MediaQuery.sizeOf(context).width >= 900;
+    final page = desktop
+        ? child
+        : Padding(
+            padding: const EdgeInsets.only(bottom: 92),
+            child: child,
+          );
     return Scaffold(
+      extendBody: !desktop,
       appBar: desktop
           ? AppBar(
               toolbarHeight: 76,
@@ -80,30 +99,172 @@ class ResponsiveShell extends StatelessWidget {
               ],
             )
           : AppBar(
+              toolbarHeight: 66,
               title: InkWell(
                 onTap: () => context.go('/'),
+                borderRadius: BorderRadius.circular(12),
                 child: const BrandLogo(onDark: true),
               ),
             ),
-      body: _AppBackground(child: child),
+      body: _AppBackground(child: page),
       bottomNavigationBar: desktop
           ? null
-          : NavigationBar(
+          : _MobileFloatingNavigation(
               selectedIndex: _selectedIndex,
-              backgroundColor: AppColors.black,
-              indicatorColor: AppColors.wine,
-              onDestinationSelected: (index) {
-                context.go(_destinations[index].$1);
-              },
-              destinations: [
-                for (final item in _destinations)
-                  NavigationDestination(
-                    icon: Icon(item.$3),
-                    selectedIcon: Icon(item.$4),
-                    label: item.$2,
-                  ),
-              ],
+              destinations: _destinations,
+              onSelected: (index) => context.go(_destinations[index].$1),
             ),
+    );
+  }
+}
+
+class _MobileFloatingNavigation extends StatelessWidget {
+  const _MobileFloatingNavigation({
+    required this.selectedIndex,
+    required this.destinations,
+    required this.onSelected,
+  });
+
+  final int selectedIndex;
+  final List<(String, String, IconData, IconData)> destinations;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: Center(
+        heightFactor: 1,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 430),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                key: const Key('mobile-floating-navigation'),
+                height: 70,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                decoration: BoxDecoration(
+                  color: const Color(0xE6111114),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: .15),
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x66000000),
+                      blurRadius: 28,
+                      offset: Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    for (var index = 0; index < destinations.length; index++)
+                      Expanded(
+                        child: _MobileNavItem(
+                          key: Key('mobile-nav-item-$index'),
+                          label: destinations[index].$2,
+                          icon: destinations[index].$3,
+                          selectedIcon: destinations[index].$4,
+                          selected: index == selectedIndex,
+                          onTap: () => onSelected(index),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MobileNavItem extends StatelessWidget {
+  const _MobileNavItem({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+    required this.selected,
+    required this.onTap,
+    super.key,
+  });
+
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: label,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              width: selected ? 58 : 48,
+              height: 54,
+              decoration: BoxDecoration(
+                gradient: selected
+                    ? const LinearGradient(
+                        colors: [AppColors.wine, AppColors.wineDark],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                borderRadius: BorderRadius.circular(selected ? 22 : 18),
+                border: selected
+                    ? Border.all(
+                        color: AppColors.gold.withValues(alpha: .55),
+                      )
+                    : null,
+                boxShadow: selected
+                    ? const [
+                        BoxShadow(
+                          color: Color(0x557A1830),
+                          blurRadius: 16,
+                          offset: Offset(0, 7),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(
+                    selected ? selectedIcon : icon,
+                    color: selected ? Colors.white : Colors.white70,
+                    size: selected ? 28 : 26,
+                  ),
+                  if (selected)
+                    const Positioned(
+                      bottom: 4,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: AppColors.gold,
+                          shape: BoxShape.circle,
+                        ),
+                        child: SizedBox.square(dimension: 4),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

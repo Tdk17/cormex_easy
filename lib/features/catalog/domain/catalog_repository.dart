@@ -13,5 +13,7 @@ abstract interface class CatalogRepository {
     String? categorySlug,
     String? city,
     String? state,
+    double? lat,
+    double? lng,
   });
 }
