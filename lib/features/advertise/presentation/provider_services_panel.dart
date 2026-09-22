@@ -82,7 +82,7 @@ class _ProviderServicesPanelState extends State<ProviderServicesPanel> {
         content: SizedBox(width: 460, child: Form(key: formKey, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
           TextFormField(controller: name, decoration: const InputDecoration(labelText: 'Nome do serviço'), validator: (value) => value?.trim().isEmpty == true ? 'Informe o nome.' : null),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(value: categoryId, decoration: const InputDecoration(labelText: 'Categoria'), items: categories.map((item) => DropdownMenuItem(value: item['publicId'].toString(), child: Text(item['name']?.toString() ?? 'Categoria'))).toList(), onChanged: (value) => setDialogState(() => categoryId = value ?? categoryId)),
+          DropdownButtonFormField<String>(initialValue: categoryId, decoration: const InputDecoration(labelText: 'Categoria'), items: categories.map((item) => DropdownMenuItem(value: item['publicId'].toString(), child: Text(item['name']?.toString() ?? 'Categoria'))).toList(), onChanged: (value) => setDialogState(() => categoryId = value ?? categoryId)),
           const SizedBox(height: 12),
           TextFormField(controller: description, maxLines: 3, decoration: const InputDecoration(labelText: 'Descrição')),
           const SizedBox(height: 12),

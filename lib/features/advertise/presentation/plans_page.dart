@@ -135,7 +135,6 @@ class _PlansPageState extends State<PlansPage> {
       return _StateCard(title: 'Não foi possível carregar os planos', message: error!, action: 'Tentar novamente', onTap: _load);
     }
     final currentCode = subscription?['planCode']?.toString();
-    final status = subscription?['status']?.toString() ?? 'sem assinatura';
     return SingleChildScrollView(
       child: PageWidth(
         child: Padding(
@@ -247,7 +246,30 @@ class _StateCard extends StatelessWidget {
   final String action;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => Center(child: Padding(padding: const EdgeInsets.all(24), child: Card(child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(title, style: Theme.of(context).textTheme.headlineSmall, textAlign: TextAlign.center), const SizedBox(height: 8), Text(message, textAlign: TextAlign.center), const SizedBox(height: 18), FilledButton(onPressed: onTap, child: Text(action))]))));
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(message, textAlign: TextAlign.center),
+                  const SizedBox(height: 18),
+                  FilledButton(onPressed: onTap, child: Text(action)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
 }
 
 Map<String, dynamic>? _map(dynamic value) => value is Map ? value.cast<String, dynamic>() : null;
