@@ -19,6 +19,8 @@ final StreamController<void> _stateController =
     StreamController<void>.broadcast();
 bool _listenerAttached = false;
 
+bool isWeb() => true;
+
 bool canInstall() => _canInstall().toDart;
 
 bool isInstalled() => _isInstalled().toDart;

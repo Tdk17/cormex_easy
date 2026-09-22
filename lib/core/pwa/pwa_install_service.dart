@@ -20,8 +20,7 @@ class PwaInstallService {
 
   bool get isIos => platform.isIos();
 
-  bool get shouldShowInstall =>
-      !isInstalled && (canInstall || isIos);
+  bool get shouldShowInstall => platform.isWeb() && !isInstalled;
 
   Stream<void> get stateChanges => platform.stateChanges;
 

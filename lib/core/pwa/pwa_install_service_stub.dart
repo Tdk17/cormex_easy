@@ -1,5 +1,7 @@
 import 'dart:async';
 
+bool isWeb() => false;
+
 bool canInstall() => false;
 
 bool isInstalled() => false;
