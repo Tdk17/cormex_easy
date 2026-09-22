@@ -44,7 +44,7 @@ class ResponsiveShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final desktop = MediaQuery.sizeOf(context).width >= 900;
+    final desktop = MediaQuery.sizeOf(context).width >= 1100;
     final page = desktop
         ? child
         : Padding(
