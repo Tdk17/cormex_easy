@@ -2,11 +2,19 @@ import 'package:cormex_easy/core/widgets/responsive_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+void _setScreenSize(WidgetTester tester, Size size) {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = size;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+}
+
 void main() {
   testWidgets('mobile usa navegação inferior flutuante com cinco destinos',
       (tester) async {
-    await tester.binding.setSurfaceSize(const Size(390, 844));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    _setScreenSize(tester, const Size(390, 844));
 
     await tester.pumpWidget(
       const MaterialApp(
@@ -29,8 +37,7 @@ void main() {
 
   testWidgets('tablet estreito mantém a navegação flutuante sem overflow',
       (tester) async {
-    await tester.binding.setSurfaceSize(const Size(900, 1000));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    _setScreenSize(tester, const Size(900, 1000));
 
     await tester.pumpWidget(
       const MaterialApp(
@@ -47,8 +54,7 @@ void main() {
   });
 
   testWidgets('desktop mantém a navegação no cabeçalho', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(1366, 768));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    _setScreenSize(tester, const Size(1366, 768));
 
     await tester.pumpWidget(
       const MaterialApp(
