@@ -50,32 +50,26 @@ void main() {
     expect(html, contains('mobile-web-app-capable'));
     expect(html, contains('apple-mobile-web-app-capable'));
     expect(html, contains('pwa_install.js'));
+    expect(html, contains('id="cormex-splash"'));
     expect(
       html.indexOf('pwa_install.js'),
       lessThan(html.indexOf('flutter_bootstrap.js')),
     );
   });
 
-  test('PWA prioriza a rede e mantém uma cópia para uso offline', () {
+  test('PWA usa um único worker e exibe o splash durante a abertura', () {
     final installer = File('web/pwa_install.js').readAsStringSync();
-    final worker =
-        File('web/cormex_service_worker.js').readAsStringSync();
     final bootstrap =
         File('web/flutter_bootstrap.js').readAsStringSync();
 
     expect(installer, contains('beforeinstallprompt'));
     expect(installer, contains('appinstalled'));
-    expect(installer, contains('cormex_service_worker.js?v=3'));
-    expect(installer, contains('controllerchange'));
-    expect(worker, contains("self.addEventListener('install'"));
-    expect(worker, contains("self.addEventListener('activate'"));
-    expect(worker, contains("self.addEventListener('fetch'"));
-    expect(worker, contains('event.respondWith'));
-    expect(worker, contains('ignoreSearch: true'));
-    expect(worker, contains('caches.delete'));
-    expect(worker, contains("cache: 'reload'"));
+    expect(installer, isNot(contains('serviceWorker.register')));
+    expect(installer, isNot(contains('controllerchange')));
     expect(bootstrap, contains('{{flutter_js}}'));
     expect(bootstrap, contains('{{flutter_build_config}}'));
-    expect(bootstrap, contains('_flutter.loader.load()'));
+    expect(bootstrap, contains('_flutter.loader.load({'));
+    expect(bootstrap, contains('onEntrypointLoaded'));
+    expect(bootstrap, contains("classList.add('flutter-ready')"));
   });
 }
