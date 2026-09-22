@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../theme/app_theme.dart';
 import 'brand_logo.dart';
+import 'pwa_install_button.dart';
 
 class ResponsiveShell extends StatelessWidget {
   const ResponsiveShell({
@@ -95,6 +96,7 @@ class ResponsiveShell extends StatelessWidget {
                       ),
                     ),
                   ),
+                const PwaInstallButton(compact: true),
                 const SizedBox(width: 24),
               ],
             )
@@ -105,6 +107,7 @@ class ResponsiveShell extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: const BrandLogo(onDark: true),
               ),
+              actions: const [PwaInstallButton()],
             ),
       body: _AppBackground(child: page),
       bottomNavigationBar: desktop

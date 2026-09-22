@@ -1,18 +1,71 @@
 {
   "name": "CormeX Easy",
-  "short_name": "CormeX Easy",
-  "start_url": ".",
+  "short_name": "CormeX",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#F8F6F4",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#170308",
   "theme_color": "#7A1830",
-  "description": "Encontre prestadores de serviços próximos de você.",
-  "orientation": "portrait-primary",
+  "description": "Encontre profissionais e serviços perto de você.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "orientation": "any",
+  "categories": ["business", "lifestyle", "productivity"],
   "prefer_related_applications": false,
   "icons": [
-    {"src": "icons/Icon-192.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "icons/Icon-512.png", "sizes": "512x512", "type": "image/png"},
-    {"src": "icons/Icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
-    {"src": "icons/Icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {
+      "src": "icons/Icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/Icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/Icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/Icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Explorar serviços",
+      "short_name": "Explorar",
+      "description": "Encontre profissionais perto de você.",
+      "url": "./#/explorar",
+      "icons": [
+        {
+          "src": "icons/Icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Anunciar meu serviço",
+      "short_name": "Anunciar",
+      "description": "Crie ou gerencie seu anúncio.",
+      "url": "./#/anunciar",
+      "icons": [
+        {
+          "src": "icons/Icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
-
