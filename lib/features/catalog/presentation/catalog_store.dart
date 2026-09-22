@@ -319,10 +319,8 @@ class CatalogStore {
         await _apiClient.runFunction('v1-providers-track-event', params: {
           'providerPublicId': providerId,
           'eventType': 'favorite_add',
-          'eventId': 'favorite_add_' +
-              providerId +
-              '_' +
-              DateTime.now().microsecondsSinceEpoch.toString(),
+          'eventId':
+              'favorite_add_${providerId}_${DateTime.now().microsecondsSinceEpoch}',
           'source': 'web',
         });
       } catch (_) {

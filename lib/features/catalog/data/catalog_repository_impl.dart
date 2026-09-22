@@ -16,9 +16,9 @@ class CatalogRepositoryImpl implements CatalogRepository {
   final ApiClient apiClient;
 
   String get _homeCacheKey =>
-      'cormex_easy.' + environment.flavor.name + '.catalog_home.v1';
+      'cormex_easy.${environment.flavor.name}.catalog_home.v1';
   String get _searchCacheKey =>
-      'cormex_easy.' + environment.flavor.name + '.catalog_search.v1';
+      'cormex_easy.${environment.flavor.name}.catalog_search.v1';
 
   @override
   Future<CatalogHomeData> loadHome({
@@ -108,14 +108,10 @@ class CatalogRepositoryImpl implements CatalogRepository {
         final matchesCategory = categorySlug == null ||
             categorySlug.isEmpty ||
             provider.category.slug == categorySlug;
-        final haystack = (provider.displayName +
-                ' ' +
-                provider.category.name +
-                ' ' +
-                provider.services.join(' ') +
-                ' ' +
-                provider.city)
-            .toLowerCase();
+        final haystack =
+            '${provider.displayName} ${provider.category.name} '
+                    '${provider.services.join(' ')} ${provider.city}'
+                .toLowerCase();
         return matchesCategory && (needle.isEmpty || haystack.contains(needle));
       }).toList();
     }
@@ -198,12 +194,12 @@ class CatalogRepositoryImpl implements CatalogRepository {
     double? lng,
   ) {
     if (lat != null && lng != null) {
-      return 'gps:' + lat.toStringAsFixed(2) + ',' + lng.toStringAsFixed(2);
+      return 'gps:${lat.toStringAsFixed(2)},${lng.toStringAsFixed(2)}';
     }
     final cityPart = city?.trim().toLowerCase() ?? '';
     final statePart = state?.trim().toUpperCase() ?? '';
     if (cityPart.isEmpty && statePart.isEmpty) return 'none';
-    return 'manual:' + cityPart + '|' + statePart;
+    return 'manual:$cityPart|$statePart';
   }
 
   Future<void> _writeCache(
@@ -261,12 +257,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
       await apiClient.runFunction('v1-providers-track-event', params: {
         'providerPublicId': provider.id,
         'eventType': 'card_impression',
-        'eventId': 'card_impression_' +
-            provider.id +
-            '_' +
-            batch.toString() +
-            '_' +
-            index.toString(),
+        'eventId': 'card_impression_${provider.id}_${batch}_$index',
         'source': 'web',
       });
     } catch (_) {
