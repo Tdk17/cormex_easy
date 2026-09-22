@@ -124,7 +124,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _chooseCity() async {
-    final controller = TextEditingController(text: store.locationLabel);
+    final controller = TextEditingController(
+      text: store.city.value.trim().isEmpty ? '' : store.locationLabel,
+    );
     final city = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -184,7 +186,9 @@ class _HomePageState extends State<HomePage> {
           ? 'Profissionais de $categoryName'
           : searchValue.isNotEmpty
               ? 'Resultados para “$searchValue”'
-              : 'Recomendados na sua região';
+              : store.hasLocation
+                  ? 'Recomendados em ${store.locationLabel}'
+                  : 'Profissionais disponíveis';
       return RefreshIndicator(
         onRefresh: () => store.loadHome(refresh: true),
         child: SingleChildScrollView(
@@ -542,7 +546,7 @@ class _HeroContent extends StatelessWidget {
             TextButton(
               onPressed: onChooseCity,
               style: TextButton.styleFrom(foregroundColor: AppColors.gold),
-              child: const Text('Alterar cidade'),
+              child: const Text('Informar cidade'),
             ),
             Text(
               locationMessage,

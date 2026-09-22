@@ -23,6 +23,29 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  test('não presume uma cidade antes da escolha do usuário', () {
+    final repository = _FakeCatalogRepository();
+    final api = ApiClient(environment);
+    final store = CatalogStore(
+      repository,
+      FavoritesService(environment, api),
+      _FakeLocationService(
+        const LocationResult(LocationResultType.disabled),
+      ),
+      environment,
+      api,
+    );
+
+    expect(store.hasLocation, isFalse);
+    expect(store.city.value, isEmpty);
+    expect(store.state.value, isEmpty);
+    expect(store.locationLabel, 'Usar minha localização');
+    expect(
+      store.locationMessage.value,
+      'Localização não definida. Use o GPS ou informe sua cidade.',
+    );
+  });
+
   test('mantém coordenadas do GPS ao pesquisar na Home', () async {
     final repository = _FakeCatalogRepository();
     final api = ApiClient(environment);
@@ -34,6 +57,8 @@ void main() {
           LocationResultType.success,
           latitude: -26.3044,
           longitude: -48.8487,
+          city: 'Joinville',
+          state: 'SC',
         ),
       ),
       environment,
@@ -44,7 +69,7 @@ void main() {
     await store.search(value: 'eletricista');
 
     expect(store.usingCurrentLocation.value, isTrue);
-    expect(store.locationLabel, 'Localização atual');
+    expect(store.locationLabel, 'Joinville, SC');
     expect(repository.searchCity, isNull);
     expect(repository.searchState, isNull);
     expect(repository.searchLatitude, -26.3044);
@@ -62,6 +87,8 @@ void main() {
           LocationResultType.success,
           latitude: -26.3044,
           longitude: -48.8487,
+          city: 'Joinville',
+          state: 'SC',
         ),
       ),
       environment,

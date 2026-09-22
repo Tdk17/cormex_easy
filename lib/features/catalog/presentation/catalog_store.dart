@@ -30,20 +30,36 @@ class CatalogStore {
   final favoriteIds = signal<Set<String>>(<String>{});
   final query = signal('');
   final selectedCategory = signal<String?>(null);
-  final city = signal('Blumenau');
-  final state = signal('SC');
+  final city = signal('');
+  final state = signal('');
   final latitude = signal<double?>(null);
   final longitude = signal<double?>(null);
   final usingCurrentLocation = signal(false);
-  final locationMessage = signal('Informe sua região ou use sua localização');
+  final locationMessage = signal(
+    'Localização não definida. Use o GPS ou informe sua cidade.',
+  );
   final errorMessage = signal<String?>(null);
 
-  String get locationLabel =>
-      usingCurrentLocation.value ? 'Localização atual' : '${city.value}, ${state.value}';
+  bool get hasLocation =>
+      usingCurrentLocation.value || city.value.trim().isNotEmpty;
 
-  String get resultsLocationLabel => usingCurrentLocation.value
-      ? 'perto da sua localização atual'
-      : 'em ${city.value}, ${state.value}';
+  String get locationLabel {
+    final cityName = city.value.trim();
+    final stateCode = state.value.trim();
+    if (cityName.isNotEmpty) {
+      return stateCode.isEmpty ? cityName : '$cityName, $stateCode';
+    }
+    return usingCurrentLocation.value
+        ? 'Localização ativa'
+        : 'Usar minha localização';
+  }
+
+  String get resultsLocationLabel {
+    if (!hasLocation) return 'em todo o catálogo';
+    return usingCurrentLocation.value
+        ? 'perto de $locationLabel'
+        : 'em $locationLabel';
+  }
 
   bool get hasActiveFilters =>
       query.value.trim().isNotEmpty || selectedCategory.value != null;
@@ -58,8 +74,12 @@ class CatalogStore {
     errorMessage.value = null;
     try {
       final data = await _repository.loadHome(
-        city: usingCurrentLocation.value ? null : city.value,
-        state: usingCurrentLocation.value ? null : state.value,
+        city: !usingCurrentLocation.value && city.value.trim().isNotEmpty
+            ? city.value
+            : null,
+        state: !usingCurrentLocation.value && state.value.trim().isNotEmpty
+            ? state.value
+            : null,
         lat: usingCurrentLocation.value ? latitude.value : null,
         lng: usingCurrentLocation.value ? longitude.value : null,
       );
@@ -113,8 +133,12 @@ class CatalogStore {
     return _repository.searchProviders(
       query: query.value,
       categorySlug: selectedCategory.value,
-      city: usingCurrentLocation.value ? null : city.value,
-      state: usingCurrentLocation.value ? null : state.value,
+      city: !usingCurrentLocation.value && city.value.trim().isNotEmpty
+          ? city.value
+          : null,
+      state: !usingCurrentLocation.value && state.value.trim().isNotEmpty
+          ? state.value
+          : null,
       lat: usingCurrentLocation.value ? latitude.value : null,
       lng: usingCurrentLocation.value ? longitude.value : null,
     );
@@ -133,8 +157,13 @@ class CatalogStore {
         }
         latitude.value = result.latitude;
         longitude.value = result.longitude;
+        city.value = result.city?.trim() ?? '';
+        state.value = result.state?.trim().toUpperCase() ?? '';
         usingCurrentLocation.value = true;
-        locationMessage.value = 'Localização atual ativada';
+        locationMessage.value = city.value.isEmpty
+            ? 'GPS ativo, mas não identificamos a cidade. '
+                'Você pode informá-la manualmente.'
+            : 'Localização detectada: $locationLabel';
         await loadHome(refresh: true);
       case LocationResultType.denied:
       case LocationResultType.deniedForever:
@@ -160,7 +189,7 @@ class CatalogStore {
         .where((part) => part.isNotEmpty)
         .toList();
     city.value = parts.first;
-    if (parts.length > 1) state.value = parts.last.toUpperCase();
+    state.value = parts.length > 1 ? parts.last.toUpperCase() : '';
     _clearCoordinates();
     locationMessage.value = 'Resultados para $locationLabel';
     await loadHome(refresh: true);
