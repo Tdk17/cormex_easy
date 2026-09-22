@@ -2,7 +2,7 @@ const scopeKey = new URL(self.registration.scope).pathname
   .replace(/[^a-z0-9]+/gi, '-')
   .replace(/^-+|-+$/g, '') || 'root';
 const cachePrefix = 'cormex-easy-' + scopeKey + '-';
-const cacheName = cachePrefix + 'offline-v3';
+const cacheName = cachePrefix + 'offline-v4';
 const shellAssets = [
   './',
   './index.html',
@@ -15,16 +15,26 @@ const shellAssets = [
   './icons/Icon-512.png',
 ];
 
+async function fetchWithTimeout(request, timeoutMs = 4500) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(request, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(cacheName);
     await Promise.all(shellAssets.map(async (path) => {
       try {
         const url = new URL(path, self.registration.scope);
-        const response = await fetch(url, { cache: 'reload' });
+        const response = await fetchWithTimeout(url, 8000);
         if (response.ok) await cache.put(url, response);
       } catch (_) {
-        // O restante do shell continua disponível se um item for opcional.
+        // Um recurso opcional não impede a instalação do restante do shell.
       }
     }));
     await self.skipWaiting();
@@ -45,7 +55,7 @@ self.addEventListener('activate', (event) => {
 
 async function networkFirst(request) {
   try {
-    const response = await fetch(request);
+    const response = await fetchWithTimeout(request);
     if (response.ok || response.type === 'opaque') {
       try {
         const cache = await caches.open(cacheName);
@@ -81,7 +91,5 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-  if (event.data === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });

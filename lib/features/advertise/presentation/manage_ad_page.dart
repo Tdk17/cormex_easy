@@ -8,6 +8,8 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/platform/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive_shell.dart';
+import '../data/billing_repository.dart';
+import 'provider_services_panel.dart';
 
 class ManageAdPage extends StatefulWidget {
   const ManageAdPage({super.key});
@@ -50,7 +52,9 @@ class _ManageAdPageState extends State<ManageAdPage> {
       };
       subscription = {
         'status': 'active',
-        'plan': {'name': 'Pro', 'code': 'pro'},
+        'planCode': 'EASY_PROFISSIONAL',
+        'amount': 29.90,
+        'currency': 'BRL',
       };
       portfolio = const [];
       totals = {
@@ -71,10 +75,7 @@ class _ManageAdPageState extends State<ManageAdPage> {
       provider = (mine['provider'] as Map?)?.cast<String, dynamic>();
       final providerId = provider?['publicId']?.toString();
       if (providerId?.isNotEmpty == true) {
-        final current = await api.runFunction(
-          'v1-subscriptions-get-current',
-          params: {'providerPublicId': providerId},
-        );
+        final current = await BillingRepository(api).subscriptionMe();
         subscription =
             (current['subscription'] as Map?)?.cast<String, dynamic>();
         try {
@@ -228,10 +229,8 @@ class _ManageAdPageState extends State<ManageAdPage> {
   Future<void> _reactivateSubscription() async {
     setState(() => acting = true);
     try {
-      final result = await getIt<ApiClient>().runFunction(
-        'v1-subscriptions-reactivate',
-        params: {'providerPublicId': provider!['publicId']},
-      );
+      final result =
+          await BillingRepository(getIt<ApiClient>()).resume();
       subscription =
           (result['subscription'] as Map?)?.cast<String, dynamic>();
       if (mounted) {
@@ -273,12 +272,8 @@ class _ManageAdPageState extends State<ManageAdPage> {
     if (confirmed != true) return;
     setState(() => acting = true);
     try {
-      final result = await getIt<ApiClient>().runFunction(
-        'v1-subscriptions-cancel',
-        params: {
-          'providerPublicId': provider!['publicId'],
-          'cancelAtPeriodEnd': true,
-        },
+      final result = await BillingRepository(getIt<ApiClient>()).cancel(
+        reason: 'Cancelado pelo cliente no aplicativo',
       );
       subscription =
           (result['subscription'] as Map?)?.cast<String, dynamic>();
@@ -324,8 +319,12 @@ class _ManageAdPageState extends State<ManageAdPage> {
 
     final status = provider!['status']?.toString() ?? 'draft';
     final slug = provider!['slug']?.toString() ?? '';
-    final plan =
-        (subscription?['plan'] as Map?)?.cast<String, dynamic>() ?? {};
+    final planCode = subscription?['planCode']?.toString() ?? '';
+    final planName = switch (planCode) {
+      'EASY_PROFISSIONAL' => 'Profissional',
+      'EASY_NEGOCIOS' => 'Negócios',
+      _ => 'Nenhum plano ativo',
+    };
     final subscriptionStatus =
         subscription?['status']?.toString() ?? 'sem assinatura';
     final location =
@@ -417,9 +416,9 @@ class _ManageAdPageState extends State<ManageAdPage> {
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: const CircleAvatar(child: Icon(Icons.workspace_premium_outlined)),
-                        title: Text(plan['name']?.toString() ?? 'Nenhum plano ativo'),
+                        title: Text(planName),
                         subtitle: Text('Status: $subscriptionStatus'),
-                        trailing: Chip(label: Text(plan['code']?.toString().toUpperCase() ?? '—')),
+                        trailing: Chip(label: Text(planCode.isEmpty ? '—' : planCode)),
                       ),
                       Wrap(
                         spacing: 10,
@@ -434,8 +433,7 @@ class _ManageAdPageState extends State<ManageAdPage> {
                               onPressed: acting ? null : _cancelSubscription,
                               child: const Text('Cancelar assinatura'),
                             ),
-                          if (subscriptionStatus == 'cancelled' &&
-                              plan['code']?.toString() == 'pro')
+                          if ({'paused', 'canceled', 'cancelled'}.contains(subscriptionStatus))
                             TextButton(
                               onPressed: acting ? null : _reactivateSubscription,
                               child: const Text('Reativar assinatura'),
@@ -445,6 +443,10 @@ class _ManageAdPageState extends State<ManageAdPage> {
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 18),
+              ProviderServicesPanel(
+                providerPublicId: provider!['publicId'].toString(),
               ),
               const SizedBox(height: 18),
               Card(

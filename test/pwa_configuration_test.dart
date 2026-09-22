@@ -64,8 +64,12 @@ void main() {
 
     expect(installer, contains('beforeinstallprompt'));
     expect(installer, contains('appinstalled'));
-    expect(installer, isNot(contains('serviceWorker.register')));
+    expect(installer, contains('serviceWorker.register'));
+    expect(installer, contains('cormex_service_worker.js?v=4'));
+    expect(installer, contains("scope: './'"));
     expect(installer, isNot(contains('controllerchange')));
+    final workflow = File('.github/workflows/deploy-pages.yml').readAsStringSync();
+    expect(workflow, contains('--pwa-strategy=none'));
     expect(bootstrap, contains('{{flutter_js}}'));
     expect(bootstrap, contains('{{flutter_build_config}}'));
     expect(bootstrap, contains('_flutter.loader.load({'));

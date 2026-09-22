@@ -9,6 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive_shell.dart';
 import '../../catalog/data/favorites_service.dart';
 import '../../catalog/presentation/catalog_store.dart';
+import '../../advertise/data/billing_repository.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -20,6 +21,8 @@ class AccountPage extends StatefulWidget {
 class _AccountPageState extends State<AccountPage> {
   bool loading = true;
   Map<String, dynamic>? user;
+  Map<String, dynamic>? subscription;
+  Map<String, dynamic>? entitlement;
   String? error;
 
   @override
@@ -38,10 +41,26 @@ class _AccountPageState extends State<AccountPage> {
         'phone': '+55 47 99999-9999',
         'hasProviderProfile': true,
       };
+      subscription = {
+        'planCode': 'EASY_PROFISSIONAL',
+        'status': 'active',
+      };
+      entitlement = {
+        'active': true,
+        'serviceLimit': 5,
+        'categoryLimit': 1,
+      };
     } else if (api.sessionToken?.isNotEmpty == true) {
       try {
-        final result = await api.runFunction('v1-auth-me');
-        user = (result['user'] as Map?)?.cast<String, dynamic>();
+        final results = await Future.wait([
+          api.runFunction('v1-auth-me'),
+          BillingRepository(api).subscriptionMe(),
+        ]);
+        user = (results[0]['user'] as Map?)?.cast<String, dynamic>();
+        subscription =
+            (results[1]['subscription'] as Map?)?.cast<String, dynamic>();
+        entitlement =
+            (results[1]['entitlement'] as Map?)?.cast<String, dynamic>();
       } on ApiException catch (exception) {
         error = exception.message;
         if (exception.type == ApiFailureType.unauthorized) {
@@ -202,6 +221,23 @@ class _AccountPageState extends State<AccountPage> {
                 ),
               ),
             ),
+            if (signedIn && subscription != null) ...[
+              const SizedBox(height: 18),
+              Card(
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.workspace_premium_outlined),
+                  ),
+                  title: Text(_planName(subscription!['planCode']?.toString())),
+                  subtitle: Text(
+                    'Status: ${subscription!['status'] ?? '—'}'
+                    '${entitlement?['active'] == true ? ' • benefícios ativos' : ''}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.go('/planos'),
+                ),
+              ),
+            ],
             const SizedBox(height: 18),
             LayoutBuilder(
               builder: (context, constraints) {
@@ -259,6 +295,12 @@ class _AccountPageState extends State<AccountPage> {
     );
   }
 }
+
+String _planName(String? code) => switch (code) {
+      'EASY_PROFISSIONAL' => 'Plano Profissional',
+      'EASY_NEGOCIOS' => 'Plano Negócios',
+      _ => 'Plano CormeX Easy',
+    };
 
 class _ActionCard extends StatelessWidget {
   const _ActionCard({required this.icon, required this.title, required this.subtitle, required this.onTap});

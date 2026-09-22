@@ -4,22 +4,27 @@
   let deferredPrompt = null;
   const stateEvent = 'cormex-pwa-state-changed';
 
-  const notifyStateChanged = () => {
-    window.dispatchEvent(new Event(stateEvent));
-  };
-
-  const isStandalone = () => {
-    return window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone === true;
-  };
-
+  const notifyStateChanged = () => window.dispatchEvent(new Event(stateEvent));
+  const isStandalone = () =>
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true;
   const isIos = () => {
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const classicIos = /iphone|ipad|ipod/.test(userAgent);
-    const ipadDesktopMode = window.navigator.platform === 'MacIntel' &&
-      window.navigator.maxTouchPoints > 1;
-    return classicIos || ipadDesktopMode;
+    return /iphone|ipad|ipod/.test(userAgent) ||
+      (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
   };
+
+  async function registerCormexWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      const workerUrl = new URL('cormex_service_worker.js?v=4', document.baseURI);
+      const registration = await navigator.serviceWorker.register(workerUrl, { scope: './' });
+      if (registration.waiting) registration.waiting.postMessage('SKIP_WAITING');
+      await registration.update();
+    } catch (error) {
+      console.warn('Não foi possível ativar o modo offline do CormeX Easy.', error);
+    }
+  }
 
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
@@ -32,15 +37,14 @@
     notifyStateChanged();
   });
 
+  window.addEventListener('load', registerCormexWorker, { once: true });
+
   window.cormexPwa = Object.freeze({
     canInstall: () => deferredPrompt !== null,
     isInstalled: isStandalone,
     isIos,
     install: async () => {
-      if (deferredPrompt === null) {
-        return 'unavailable';
-      }
-
+      if (deferredPrompt === null) return 'unavailable';
       const prompt = deferredPrompt;
       await prompt.prompt();
       const choice = await prompt.userChoice;
@@ -49,5 +53,4 @@
       return choice && choice.outcome ? choice.outcome : 'dismissed';
     },
   });
-
 })();

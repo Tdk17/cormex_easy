@@ -8,6 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive_shell.dart';
+import '../data/billing_repository.dart';
 
 class AdvertisePage extends StatefulWidget {
   const AdvertisePage({super.key});
@@ -21,7 +22,7 @@ class _AdvertisePageState extends State<AdvertisePage> {
   int step = 0;
   String providerType = 'Autônomo';
   String operation = 'Atuo sozinho';
-  String selectedPlan = 'basic';
+  String selectedPlan = 'EASY_PROFISSIONAL';
   bool open24Hours = false;
   bool acceptedTerms = false;
   bool submitting = false;
@@ -182,49 +183,22 @@ class _AdvertisePageState extends State<AdvertisePage> {
   }
 
   Future<String?> _activatePlan(ApiClient api, String providerPublicId) async {
-    final response = await api.runFunction(
-      'v1-plans-eligible',
-      params: {'providerPublicId': providerPublicId},
+    final expectedPlan = providerType == 'Autônomo'
+        ? 'EASY_PROFISSIONAL'
+        : 'EASY_NEGOCIOS';
+    if (selectedPlan != expectedPlan) selectedPlan = expectedPlan;
+    final result = await BillingRepository(api).createSubscription(
+      selectedPlan,
+      preferredPaymentMode: 'card',
     );
-    final plans = (response['plans'] as List? ?? [])
-        .whereType<Map>()
-        .map((item) => item.cast<String, dynamic>())
-        .toList();
-    final plan = plans.cast<Map<String, dynamic>?>().firstWhere(
-          (item) => item?['code']?.toString() == selectedPlan,
-          orElse: () => null,
-        );
-    if (plan == null) {
-      throw const ApiException(
-        ApiFailureType.badRequest,
-        'O plano selecionado não está disponível para este perfil.',
-      );
-    }
-
-    final result = await api.runFunction('v1-subscriptions-create', params: {
-      'providerPublicId': providerPublicId,
-      'planPublicId': plan['publicId'],
-      'billingCycle': plan['billingCycle'] ?? 'monthly',
-      if (selectedPlan == 'pro') ...{
-        'useTrial': true,
-        'paymentMethod': 'credit_card',
-        'returnUrl': Uri.base
-            .replace(query: null, fragment: '/meu-anuncio')
-            .toString(),
-        'idempotencyKey': 'onboarding-$providerPublicId-$selectedPlan',
-      },
-    });
-    final subscription =
-        (result['subscription'] as Map?)?.cast<String, dynamic>() ?? {};
-    final status = subscription['status']?.toString();
-    if (status == 'active' || status == 'trial') {
+    final status = result['status']?.toString();
+    if (status == 'active') {
       await api.runFunction('v1-provider-profile-publish', params: {
         'providerPublicId': providerPublicId,
       });
       return null;
     }
-    final payment = (result['payment'] as Map?)?.cast<String, dynamic>();
-    return payment?['checkoutUrl']?.toString();
+    return result['checkoutUrl']?.toString();
   }
 
   Future<void> _continue() async {
@@ -260,7 +234,7 @@ class _AdvertisePageState extends State<AdvertisePage> {
             webOnlyWindowName: '_blank',
           );
           message = opened
-              ? 'Seu anúncio foi salvo. Conclua o pagamento na nova aba para ativar o plano Pro.'
+              ? 'Seu anúncio foi salvo. Conclua o pagamento na nova aba para ativar o plano.'
               : 'Seu anúncio foi salvo, mas não foi possível abrir o pagamento. Acesse Meu anúncio para continuar.';
         } else {
           message = 'Cadastro concluído e anúncio publicado com sucesso.';
@@ -325,7 +299,12 @@ class _AdvertisePageState extends State<AdvertisePage> {
                         0 => _BusinessStep(
                             key: const ValueKey(0),
                             providerType: providerType,
-                            onTypeChanged: (value) => setState(() => providerType = value),
+                            onTypeChanged: (value) => setState(() {
+                              providerType = value;
+                              selectedPlan = value == 'Autônomo'
+                                  ? 'EASY_PROFISSIONAL'
+                                  : 'EASY_NEGOCIOS';
+                            }),
                             operation: operation,
                             onOperationChanged: (value) => setState(() => operation = value),
                             businessName: businessName,
@@ -618,18 +597,18 @@ class _PlanStep extends StatelessWidget {
         const Text('Valores, benefícios e elegibilidade serão confirmados pelo backend para o seu perfil.'),
         const SizedBox(height: 18),
         _PlanOption(
-          title: 'Básico',
-          subtitle: 'Perfil público, WhatsApp e área de atendimento.',
-          selected: selected == 'basic',
-          onTap: () => onSelected('basic'),
+          title: 'Profissional',
+          subtitle: 'Para autônomos: até 5 serviços, WhatsApp e métricas essenciais.',
+          selected: selected == 'EASY_PROFISSIONAL',
+          onTap: () => onSelected('EASY_PROFISSIONAL'),
         ),
         const SizedBox(height: 12),
         _PlanOption(
-          title: 'Pro',
-          subtitle: 'Destaque comercial, maior exposição com rotação justa e analytics.',
-          selected: selected == 'pro',
+          title: 'Negócios',
+          subtitle: 'Para MEI e empresas: até 15 serviços, destaque e métricas avançadas.',
+          selected: selected == 'EASY_NEGOCIOS',
           pro: true,
-          onTap: () => onSelected('pro'),
+          onTap: () => onSelected('EASY_NEGOCIOS'),
         ),
       ],
     );
@@ -722,7 +701,7 @@ class _ReviewStep extends StatelessWidget {
         _ReviewRow('Anúncio', businessName),
         _ReviewRow('Perfil', providerType),
         _ReviewRow('Região', city),
-        _ReviewRow('Plano solicitado', plan == 'pro' ? 'Pro' : 'Básico'),
+        _ReviewRow('Plano solicitado', plan == 'EASY_NEGOCIOS' ? 'Negócios' : 'Profissional'),
         const Divider(height: 28),
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
