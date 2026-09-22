@@ -13,7 +13,7 @@ void _setScreenSize(WidgetTester tester, Size size) {
 }
 
 void main() {
-  testWidgets('mobile usa navegação inferior leve com cinco destinos',
+  testWidgets('mobile usa navegação leve com quatro destinos',
       (tester) async {
     _setScreenSize(tester, const Size(390, 844));
 
@@ -30,7 +30,7 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(BackdropFilter), findsNothing);
     expect(find.byTooltip('Início'), findsOneWidget);
-    expect(find.byTooltip('Explorar'), findsOneWidget);
+    expect(find.byTooltip('Explorar'), findsNothing);
     expect(find.byTooltip('Anunciar'), findsOneWidget);
     expect(find.byTooltip('Favoritos'), findsOneWidget);
     expect(find.byTooltip('Conta'), findsOneWidget);
@@ -42,7 +42,7 @@ void main() {
     _setScreenSize(tester, const Size(390, 844));
 
     final router = GoRouter(
-      initialLocation: '/explorar',
+      initialLocation: '/anunciar',
       routes: [
         ShellRoute(
           builder: (context, state, child) => ResponsiveShell(
@@ -56,24 +56,19 @@ void main() {
                   const Center(child: Text('destino-0')),
             ),
             GoRoute(
-              path: '/explorar',
+              path: '/anunciar',
               builder: (context, state) =>
                   const Center(child: Text('destino-1')),
             ),
             GoRoute(
-              path: '/anunciar',
+              path: '/favoritos',
               builder: (context, state) =>
                   const Center(child: Text('destino-2')),
             ),
             GoRoute(
-              path: '/favoritos',
-              builder: (context, state) =>
-                  const Center(child: Text('destino-3')),
-            ),
-            GoRoute(
               path: '/conta',
               builder: (context, state) =>
-                  const Center(child: Text('destino-4')),
+                  const Center(child: Text('destino-3')),
             ),
           ],
         ),
@@ -84,7 +79,7 @@ void main() {
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
     await tester.pumpAndSettle();
 
-    for (var index = 0; index < 5; index++) {
+    for (var index = 0; index < 4; index++) {
       await tester.tap(find.byKey(Key('mobile-nav-item-$index')));
       await tester.pumpAndSettle();
 
@@ -97,14 +92,14 @@ void main() {
     }
   });
 
-  testWidgets('tablet estreito mantém a navegação flutuante sem overflow',
+  testWidgets('tablet mantém a navegação flutuante sem overflow',
       (tester) async {
     _setScreenSize(tester, const Size(900, 1000));
 
     await tester.pumpWidget(
       const MaterialApp(
         home: ResponsiveShell(
-          location: '/explorar',
+          location: '/anunciar',
           child: SizedBox.expand(),
         ),
       ),
@@ -115,7 +110,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('desktop mantém a navegação no cabeçalho', (tester) async {
+  testWidgets('desktop mantém somente as rotas principais no cabeçalho',
+      (tester) async {
     _setScreenSize(tester, const Size(1366, 768));
 
     await tester.pumpWidget(
@@ -129,7 +125,8 @@ void main() {
 
     expect(find.byKey(const Key('mobile-floating-navigation')), findsNothing);
     expect(find.text('Início'), findsOneWidget);
-    expect(find.text('Explorar'), findsOneWidget);
+    expect(find.text('Explorar'), findsNothing);
+    expect(find.text('Anunciar'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -6,8 +6,6 @@ import '../../features/admin/presentation/admin_page.dart';
 import '../../features/advertise/presentation/advertise_page.dart';
 import '../../features/advertise/presentation/manage_ad_page.dart';
 import '../../features/advertise/presentation/plans_page.dart';
-import '../../features/catalog/presentation/categories_page.dart';
-import '../../features/catalog/presentation/explore_page.dart';
 import '../../features/catalog/presentation/favorites_page.dart';
 import '../../features/catalog/presentation/home_page.dart';
 import '../../features/catalog/presentation/provider_page.dart';
@@ -66,38 +64,93 @@ class AppRouter {
           child: child,
         ),
         routes: [
-          GoRoute(path: '/', builder: (context, state) => const HomePage()),
           GoRoute(
-            path: '/explorar',
-            builder: (context, state) => ExplorePage(
+            path: '/',
+            builder: (context, state) => HomePage(
               initialQuery: state.uri.queryParameters['q'] ?? '',
-              categorySlug: state.uri.queryParameters['categoria'],
+              initialCategory: state.uri.queryParameters['categoria'],
             ),
           ),
-          GoRoute(path: '/categorias', builder: (context, state) => CategoriesPage()),
+          GoRoute(
+            path: '/explorar',
+            redirect: (context, state) {
+              final query = state.uri.queryParameters['q'];
+              final category = state.uri.queryParameters['categoria'];
+              final parameters = <String, String>{
+                if (query != null && query.trim().isNotEmpty) 'q': query,
+                if (category != null && category.trim().isNotEmpty)
+                  'categoria': category,
+              };
+              return Uri(
+                path: '/',
+                queryParameters: parameters.isEmpty ? null : parameters,
+              ).toString();
+            },
+          ),
+          GoRoute(
+            path: '/categorias',
+            redirect: (context, state) => '/',
+          ),
           GoRoute(
             path: '/categoria/:slug',
-            builder: (context, state) => ExplorePage(categorySlug: state.pathParameters['slug']),
+            redirect: (context, state) {
+              final slug = state.pathParameters['slug'] ?? '';
+              return Uri(
+                path: '/',
+                queryParameters: {'categoria': slug},
+              ).toString();
+            },
           ),
           GoRoute(
             path: '/prestador/:slug',
-            builder: (context, state) => ProviderPage(slug: state.pathParameters['slug']!),
+            builder: (context, state) => ProviderPage(
+              slug: state.pathParameters['slug']!,
+            ),
           ),
-          GoRoute(path: '/favoritos', builder: (context, state) => FavoritesPage()),
-          GoRoute(path: '/anunciar', builder: (context, state) => const AdvertisePage()),
-          GoRoute(path: '/entrar', builder: (context, state) => const LoginPage()),
-          GoRoute(path: '/cadastro', redirect: (context, state) => '/anunciar'),
-          GoRoute(path: '/conta', builder: (context, state) => const AccountPage()),
-          GoRoute(path: '/meu-anuncio', builder: (context, state) => const ManageAdPage()),
-          GoRoute(path: '/planos', builder: (context, state) => const PlansPage()),
+          GoRoute(
+            path: '/favoritos',
+            builder: (context, state) => FavoritesPage(),
+          ),
+          GoRoute(
+            path: '/anunciar',
+            builder: (context, state) => const AdvertisePage(),
+          ),
+          GoRoute(
+            path: '/entrar',
+            builder: (context, state) => const LoginPage(),
+          ),
+          GoRoute(
+            path: '/cadastro',
+            redirect: (context, state) => '/anunciar',
+          ),
+          GoRoute(
+            path: '/conta',
+            builder: (context, state) => const AccountPage(),
+          ),
+          GoRoute(
+            path: '/meu-anuncio',
+            builder: (context, state) => const ManageAdPage(),
+          ),
+          GoRoute(
+            path: '/planos',
+            builder: (context, state) => const PlansPage(),
+          ),
           GoRoute(
             path: '/admin',
             builder: (context, state) => AdminPage(
               preview: state.uri.queryParameters['preview'] == 'qa',
             ),
           ),
-          GoRoute(path: '/privacidade', builder: (context, state) => const LegalPage(title: 'Política de Privacidade')),
-          GoRoute(path: '/termos', builder: (context, state) => const LegalPage(title: 'Termos de Uso')),
+          GoRoute(
+            path: '/privacidade',
+            builder: (context, state) =>
+                const LegalPage(title: 'Política de Privacidade'),
+          ),
+          GoRoute(
+            path: '/termos',
+            builder: (context, state) =>
+                const LegalPage(title: 'Termos de Uso'),
+          ),
           GoRoute(
             path: '/erro/:code',
             builder: (context, state) => ErrorPage(

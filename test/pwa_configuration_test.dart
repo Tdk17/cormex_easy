@@ -33,7 +33,13 @@ void main() {
       icons.any((icon) => icon['purpose'] == 'maskable'),
       isTrue,
     );
-    expect((manifest['shortcuts'] as List).length, greaterThanOrEqualTo(2));
+    final shortcuts =
+        (manifest['shortcuts'] as List).cast<Map<String, dynamic>>();
+    expect(shortcuts.length, greaterThanOrEqualTo(2));
+    expect(
+      shortcuts.any((shortcut) => shortcut['url'] == './#/explorar'),
+      isFalse,
+    );
   });
 
   test('HTML prepara instalação no Android e no iPhone', () {

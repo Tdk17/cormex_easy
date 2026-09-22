@@ -12,15 +12,40 @@ import 'catalog_store.dart';
 import 'catalog_widgets.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({
+    super.key,
+    this.initialQuery = '',
+    this.initialCategory,
+  });
+
+  final String initialQuery;
+  final String? initialCategory;
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  final _searchController = TextEditingController();
+  late final TextEditingController _searchController;
+  final _resultsKey = GlobalKey();
   final store = getIt<CatalogStore>();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(text: widget.initialQuery);
+    _scheduleRouteFilters();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialQuery != widget.initialQuery ||
+        oldWidget.initialCategory != widget.initialCategory) {
+      _searchController.text = widget.initialQuery;
+      _scheduleRouteFilters();
+    }
+  }
 
   @override
   void dispose() {
@@ -28,9 +53,74 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  void _submitSearch(String value) {
-    final query = Uri.encodeQueryComponent(value.trim());
-    context.go(query.isEmpty ? '/explorar' : '/explorar?q=$query');
+  void _scheduleRouteFilters() {
+    if (widget.initialQuery.trim().isEmpty &&
+        widget.initialCategory == null) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _applyRouteFilters();
+    });
+  }
+
+  Future<void> _applyRouteFilters() async {
+    await store.search(
+      value: widget.initialQuery,
+      categorySlug: widget.initialCategory,
+      replaceCategory: true,
+    );
+    _scrollToResults();
+  }
+
+  Future<void> _submitSearch(String value) async {
+    await store.search(
+      value: value,
+      categorySlug: null,
+      replaceCategory: true,
+    );
+    _scrollToResults();
+  }
+
+  Future<void> _selectCategory(String slug) async {
+    final nextSlug = store.selectedCategory.value == slug ? null : slug;
+    _searchController.clear();
+    await store.search(
+      value: '',
+      categorySlug: nextSlug,
+      replaceCategory: true,
+    );
+    _scrollToResults();
+  }
+
+  Future<void> _clearFilters() async {
+    _searchController.clear();
+    await store.clearFilters();
+    _scrollToResults();
+  }
+
+  String? _categoryName(
+    List<ServiceCategory> categories,
+    String? selectedSlug,
+  ) {
+    if (selectedSlug == null) return null;
+    for (final category in categories) {
+      if (category.slug == selectedSlug) return category.name;
+    }
+    return null;
+  }
+
+  void _scrollToResults() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final resultsContext = _resultsKey.currentContext;
+      if (resultsContext == null) return;
+      Scrollable.ensureVisible(
+        resultsContext,
+        duration: const Duration(milliseconds: 360),
+        curve: Curves.easeOutCubic,
+        alignment: .08,
+      );
+    });
   }
 
   Future<void> _chooseCity() async {
@@ -82,6 +172,19 @@ class _HomePageState extends State<HomePage> {
     return Watch((context) {
       final data = store.home.value;
       final phase = store.phase.value;
+      final providers = store.visibleProviders.value;
+      final selectedSlug = store.selectedCategory.value;
+      final searchValue = store.query.value.trim();
+      final hasFilters = store.hasActiveFilters;
+      final categoryName = _categoryName(
+        data?.categories ?? const [],
+        selectedSlug,
+      );
+      final resultsTitle = categoryName != null
+          ? 'Profissionais de $categoryName'
+          : searchValue.isNotEmpty
+              ? 'Resultados para “$searchValue”'
+              : 'Recomendados na sua região';
       return RefreshIndicator(
         onRefresh: () => store.loadHome(refresh: true),
         child: SingleChildScrollView(
@@ -112,39 +215,55 @@ class _HomePageState extends State<HomePage> {
                     onChooseCity: _chooseCity,
                   ),
                   const SizedBox(height: 26),
-                  SectionTitle(
-                    'O que você precisa?',
-                    action: 'Ver todas',
-                    onAction: () => context.go('/categorias'),
-                  ),
+                  const SectionTitle('O que você precisa?'),
                   const SizedBox(height: 14),
                   if (data == null && phase == LoadPhase.loading)
                     const _CategorySkeleton()
                   else
                     _CategoriesStrip(
                       categories: data?.categories ?? const [],
-                      onTap: (slug) => context.go('/categoria/$slug'),
+                      selectedSlug: selectedSlug,
+                      onTap: _selectCategory,
                     ),
                   const SizedBox(height: 28),
-                  const SectionTitle('Recomendados na sua região'),
+                  SectionTitle(
+                    resultsTitle,
+                    key: _resultsKey,
+                    action: hasFilters ? 'Limpar filtros' : null,
+                    onAction: hasFilters ? _clearFilters : null,
+                  ),
                   const SizedBox(height: 12),
-                  if (phase == LoadPhase.loading && data == null)
+                  if (phase == LoadPhase.loading ||
+                      phase == LoadPhase.refreshing ||
+                      phase == LoadPhase.initial)
                     const _ProviderSkeleton()
                   else if (phase == LoadPhase.error)
                     StateView(
                       icon: Icons.cloud_off,
                       title: 'Não conseguimos carregar os serviços',
-                      message: store.errorMessage.value ?? 'Tente novamente em instantes.',
+                      message: store.errorMessage.value ??
+                          'Tente novamente em instantes.',
                       actionLabel: 'Tentar novamente',
-                      onAction: store.loadHome,
+                      onAction: () {
+                        if (hasFilters) {
+                          store.search();
+                        } else {
+                          store.loadHome();
+                        }
+                      },
                     )
-                  else if ((data?.providers ?? []).isEmpty)
+                  else if (providers.isEmpty)
                     StateView(
                       icon: Icons.search_off,
-                      title: 'Nenhum serviço por aqui ainda',
-                      message: 'Altere sua região ou seja o primeiro a anunciar.',
-                      actionLabel: 'Alterar região',
-                      onAction: _chooseCity,
+                      title: hasFilters
+                          ? 'Nenhum profissional encontrado'
+                          : 'Nenhum serviço por aqui ainda',
+                      message: hasFilters
+                          ? 'Tente outra categoria ou limpe os filtros.'
+                          : 'Altere sua região ou seja o primeiro a anunciar.',
+                      actionLabel:
+                          hasFilters ? 'Limpar filtros' : 'Alterar região',
+                      onAction: hasFilters ? _clearFilters : _chooseCity,
                     )
                   else
                     LayoutBuilder(
@@ -154,25 +273,28 @@ class _HomePageState extends State<HomePage> {
                             : constraints.maxWidth >= 960
                                 ? 3
                                 : constraints.maxWidth >= 640
-                                ? 2
-                                : 1;
+                                    ? 2
+                                    : 1;
                         return GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: data!.providers.length,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          itemCount: providers.length,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: columns,
                             crossAxisSpacing: 18,
                             mainAxisSpacing: 18,
                             mainAxisExtent: 326,
                           ),
                           itemBuilder: (context, index) {
-                            final provider = data.providers[index];
+                            final provider = providers[index];
                             return ProviderCard(
                               provider: provider,
                               isFavorite: store.isFavorite(provider.id),
-                              onFavorite: () => store.toggleFavorite(provider.id),
-                              onOpen: () => context.go('/prestador/${provider.slug}'),
+                              onFavorite: () =>
+                                  store.toggleFavorite(provider.id),
+                              onOpen: () =>
+                                  context.go('/prestador/${provider.slug}'),
                             );
                           },
                         );
@@ -596,9 +718,14 @@ class _HeroOfferPoint extends StatelessWidget {
 }
 
 class _CategoriesStrip extends StatefulWidget {
-  const _CategoriesStrip({required this.categories, required this.onTap});
+  const _CategoriesStrip({
+    required this.categories,
+    required this.selectedSlug,
+    required this.onTap,
+  });
 
   final List<ServiceCategory> categories;
+  final String? selectedSlug;
   final ValueChanged<String> onTap;
 
   @override
@@ -677,12 +804,14 @@ class _CategoriesStripState extends State<_CategoriesStrip> {
                       padding: const EdgeInsets.only(bottom: 14),
                       itemCount: widget.categories.length,
                       separatorBuilder: (_, __) => const SizedBox(width: 10),
-                      itemBuilder: (context, index) => CategoryTile(
-                        category: widget.categories[index],
-                        onTap: () => widget.onTap(
-                          widget.categories[index].slug,
-                        ),
-                      ),
+                      itemBuilder: (context, index) {
+                        final category = widget.categories[index];
+                        return CategoryTile(
+                          category: category,
+                          selected: category.slug == widget.selectedSlug,
+                          onTap: () => widget.onTap(category.slug),
+                        );
+                      },
                     ),
                   ),
                 ),

@@ -23,7 +23,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  test('mantém coordenadas do GPS ao pesquisar em Explorar', () async {
+  test('mantém coordenadas do GPS ao pesquisar na Home', () async {
     final repository = _FakeCatalogRepository();
     final api = ApiClient(environment);
     final store = CatalogStore(
@@ -81,6 +81,45 @@ void main() {
     expect(repository.searchLatitude, isNull);
     expect(repository.searchLongitude, isNull);
   });
+  test('categoria e pesquisa são aplicadas diretamente na Home', () async {
+    final repository = _FakeCatalogRepository();
+    final api = ApiClient(environment);
+    final store = CatalogStore(
+      repository,
+      FavoritesService(environment, api),
+      _FakeLocationService(
+        const LocationResult(LocationResultType.disabled),
+      ),
+      environment,
+      api,
+    );
+
+    await store.search(
+      categorySlug: 'eletricista',
+      replaceCategory: true,
+    );
+
+    expect(store.hasActiveFilters, isTrue);
+    expect(store.selectedCategory.value, 'eletricista');
+    expect(repository.searchCategorySlug, 'eletricista');
+
+    await store.search(
+      value: 'chuveiro',
+      categorySlug: null,
+      replaceCategory: true,
+    );
+
+    expect(store.query.value, 'chuveiro');
+    expect(store.selectedCategory.value, isNull);
+    expect(repository.searchQuery, 'chuveiro');
+    expect(repository.searchCategorySlug, isNull);
+
+    await store.clearFilters();
+
+    expect(store.hasActiveFilters, isFalse);
+    expect(store.query.value, isEmpty);
+  });
+
 }
 
 class _FakeLocationService extends LocationService {
@@ -93,6 +132,8 @@ class _FakeLocationService extends LocationService {
 }
 
 class _FakeCatalogRepository implements CatalogRepository {
+  String? searchQuery;
+  String? searchCategorySlug;
   String? searchCity;
   String? searchState;
   double? searchLatitude;
@@ -127,6 +168,8 @@ class _FakeCatalogRepository implements CatalogRepository {
     double? lat,
     double? lng,
   }) async {
+    searchQuery = query;
+    searchCategorySlug = categorySlug;
     searchCity = city;
     searchState = state;
     searchLatitude = lat;

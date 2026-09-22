@@ -59,17 +59,22 @@ class CategoryTile extends StatelessWidget {
     required this.onTap,
     super.key,
     this.expanded = false,
+    this.selected = false,
   });
 
   final ServiceCategory category;
   final VoidCallback onTap;
   final bool expanded;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     final tile = Semantics(
       button: true,
-      label: 'Buscar por ${category.name}',
+      selected: selected,
+      label: selected
+          ? '${category.name} selecionada'
+          : 'Filtrar por ${category.name}',
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -79,13 +84,18 @@ class CategoryTile extends StatelessWidget {
             width: expanded ? null : 126,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .92),
+              color: selected ? AppColors.wine : Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE9DDE1)),
+              border: Border.all(
+                color: selected ? AppColors.gold : const Color(0xFFE9DDE1),
+                width: selected ? 1.5 : 1,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.wine.withValues(alpha: .05),
-                  blurRadius: 18,
+                  color: AppColors.wine.withValues(
+                    alpha: selected ? .2 : .05,
+                  ),
+                  blurRadius: selected ? 20 : 18,
                   offset: const Offset(0, 8),
                 ),
               ],
@@ -98,18 +108,28 @@ class CategoryTile extends StatelessWidget {
                   height: 46,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFFFFEFF3),
-                        AppColors.goldSoft.withValues(alpha: .55),
-                      ],
+                      colors: selected
+                          ? [
+                              AppColors.wineSoft,
+                              AppColors.wineDark,
+                            ]
+                          : [
+                              const Color(0xFFFFEFF3),
+                              AppColors.goldSoft.withValues(alpha: .55),
+                            ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     shape: BoxShape.circle,
+                    border: selected
+                        ? Border.all(
+                            color: AppColors.gold.withValues(alpha: .65),
+                          )
+                        : null,
                   ),
                   child: Icon(
                     categoryIcon(category.iconKey),
-                    color: AppColors.wine,
+                    color: selected ? Colors.white : AppColors.wine,
                   ),
                 ),
                 const SizedBox(height: 9),
@@ -118,7 +138,10 @@ class CategoryTile extends StatelessWidget {
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    color: selected ? Colors.white : null,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),

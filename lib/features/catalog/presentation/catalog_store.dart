@@ -45,6 +45,9 @@ class CatalogStore {
       ? 'perto da sua localização atual'
       : 'em ${city.value}, ${state.value}';
 
+  bool get hasActiveFilters =>
+      query.value.trim().isNotEmpty || selectedCategory.value != null;
+
   Future<void> initialize() async {
     favoriteIds.value = await _favorites.load();
     await loadHome();
@@ -61,34 +64,60 @@ class CatalogStore {
         lng: usingCurrentLocation.value ? longitude.value : null,
       );
       home.value = data;
-      visibleProviders.value = data.providers;
-      phase.value = data.providers.isEmpty ? LoadPhase.empty : LoadPhase.success;
+
+      if (hasActiveFilters) {
+        final items = await _fetchFilteredProviders();
+        visibleProviders.value = items;
+        phase.value = items.isEmpty ? LoadPhase.empty : LoadPhase.success;
+      } else {
+        visibleProviders.value = data.providers;
+        phase.value =
+            data.providers.isEmpty ? LoadPhase.empty : LoadPhase.success;
+      }
     } catch (_) {
       phase.value = LoadPhase.error;
       errorMessage.value = 'Não foi possível carregar os serviços agora.';
     }
   }
 
-  Future<void> search({String? value, String? categorySlug}) async {
-    if (value != null) query.value = value;
-    if (categorySlug != null) selectedCategory.value = categorySlug;
+  Future<void> search({
+    String? value,
+    String? categorySlug,
+    bool replaceCategory = false,
+  }) async {
+    if (value != null) query.value = value.trim();
+    if (replaceCategory || categorySlug != null) {
+      selectedCategory.value = categorySlug;
+    }
     phase.value = LoadPhase.loading;
     errorMessage.value = null;
     try {
-      final items = await _repository.searchProviders(
-        query: query.value,
-        categorySlug: selectedCategory.value,
-        city: usingCurrentLocation.value ? null : city.value,
-        state: usingCurrentLocation.value ? null : state.value,
-        lat: usingCurrentLocation.value ? latitude.value : null,
-        lng: usingCurrentLocation.value ? longitude.value : null,
-      );
+      final items = await _fetchFilteredProviders();
       visibleProviders.value = items;
       phase.value = items.isEmpty ? LoadPhase.empty : LoadPhase.success;
     } catch (_) {
       phase.value = LoadPhase.error;
       errorMessage.value = 'Não foi possível realizar a busca.';
     }
+  }
+
+  Future<void> clearFilters() {
+    return search(
+      value: '',
+      categorySlug: null,
+      replaceCategory: true,
+    );
+  }
+
+  Future<List<ProviderProfile>> _fetchFilteredProviders() {
+    return _repository.searchProviders(
+      query: query.value,
+      categorySlug: selectedCategory.value,
+      city: usingCurrentLocation.value ? null : city.value,
+      state: usingCurrentLocation.value ? null : state.value,
+      lat: usingCurrentLocation.value ? latitude.value : null,
+      lng: usingCurrentLocation.value ? longitude.value : null,
+    );
   }
 
   Future<void> useCurrentLocation() async {

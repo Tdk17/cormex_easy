@@ -17,23 +17,28 @@ class ResponsiveShell extends StatelessWidget {
 
   static const _destinations = [
     ('/', 'Início', Icons.home_outlined, Icons.home_rounded),
-    ('/explorar', 'Explorar', Icons.search_outlined, Icons.search_rounded),
-    ('/anunciar', 'Anunciar', Icons.add_business_outlined, Icons.add_business_rounded),
+    (
+      '/anunciar',
+      'Anunciar',
+      Icons.add_business_outlined,
+      Icons.add_business_rounded,
+    ),
     ('/favoritos', 'Favoritos', Icons.favorite_border, Icons.favorite),
     ('/conta', 'Conta', Icons.person_outline, Icons.person),
   ];
 
   int get _selectedIndex {
     if (location.startsWith('/prestador') ||
+        location.startsWith('/explorar') ||
         location.startsWith('/categoria') ||
         location.startsWith('/categorias')) {
-      return 1;
+      return 0;
     }
     if (location.startsWith('/meu-anuncio') ||
         location.startsWith('/planos')) {
-      return 2;
+      return 1;
     }
-    if (location.startsWith('/entrar')) return 4;
+    if (location.startsWith('/entrar')) return 3;
     final index = _destinations.indexWhere((item) {
       if (item.$1 == '/') return location == '/';
       return location.startsWith(item.$1);

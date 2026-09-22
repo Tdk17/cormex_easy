@@ -5,14 +5,21 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "background_color": "#170308",
   "theme_color": "#7A1830",
   "description": "Encontre profissionais e serviços perto de você.",
   "lang": "pt-BR",
   "dir": "ltr",
   "orientation": "any",
-  "categories": ["business", "lifestyle", "productivity"],
+  "categories": [
+    "business",
+    "lifestyle",
+    "productivity"
+  ],
   "prefer_related_applications": false,
   "icons": [
     {
@@ -42,10 +49,10 @@
   ],
   "shortcuts": [
     {
-      "name": "Explorar serviços",
-      "short_name": "Explorar",
-      "description": "Encontre profissionais perto de você.",
-      "url": "./#/explorar",
+      "name": "Encontrar serviços",
+      "short_name": "Encontrar",
+      "description": "Pesquise categorias e profissionais na tela inicial.",
+      "url": "./",
       "icons": [
         {
           "src": "icons/Icon-192.png",
