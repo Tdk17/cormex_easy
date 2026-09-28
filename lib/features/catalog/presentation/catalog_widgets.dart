@@ -593,12 +593,16 @@ class _ProviderCardState extends State<ProviderCard> {
                   children: [
                     Icon(Icons.sync, size: 15, color: AppColors.muted),
                     SizedBox(width: 5),
-                    Text(
-                      'Toque fora dos botões para voltar',
-                      style: TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
+                    Flexible(
+                      child: Text(
+                        'Toque no card para voltar',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
