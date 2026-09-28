@@ -854,29 +854,21 @@ class _CategoriesStripState extends State<_CategoriesStrip> {
               Expanded(
                 child: Listener(
                   onPointerSignal: _handlePointerSignal,
-                  child: Scrollbar(
+                  child: ListView.separated(
                     controller: _controller,
-                    thumbVisibility: true,
-                    trackVisibility: true,
-                    interactive: true,
-                    thickness: 5,
-                    radius: const Radius.circular(99),
-                    child: ListView.separated(
-                      controller: _controller,
-                      scrollDirection: Axis.horizontal,
-                      physics: const ClampingScrollPhysics(),
-                      padding: const EdgeInsets.only(bottom: 14),
-                      itemCount: widget.categories.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 10),
-                      itemBuilder: (context, index) {
-                        final category = widget.categories[index];
-                        return CategoryTile(
-                          category: category,
-                          selected: category.slug == widget.selectedSlug,
-                          onTap: () => widget.onTap(category.slug),
-                        );
-                      },
-                    ),
+                    scrollDirection: Axis.horizontal,
+                    physics: const ClampingScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 14),
+                    itemCount: widget.categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final category = widget.categories[index];
+                      return CategoryTile(
+                        category: category,
+                        selected: category.slug == widget.selectedSlug,
+                        onTap: () => widget.onTap(category.slug),
+                      );
+                    },
                   ),
                 ),
               ),
