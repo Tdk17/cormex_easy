@@ -30,6 +30,8 @@ IconData categoryIcon(String key) => switch (key) {
       'handyman' => Icons.handyman,
       'clean' => Icons.cleaning_services,
       'computer' => Icons.computer,
+      'paint' => Icons.format_paint,
+      'garden' => Icons.yard,
       _ => Icons.home_repair_service,
     };
 

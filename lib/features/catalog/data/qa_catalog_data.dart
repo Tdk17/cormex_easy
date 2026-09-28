@@ -3,21 +3,63 @@ import '../domain/catalog_models.dart';
 // Dados visuais exclusivos do build QA. Esta fonte nunca é habilitada em produção.
 class QaCatalogData {
   static const categories = <ServiceCategory>[
-    ServiceCategory(id: 'cat-1', name: 'Mecânico', slug: 'mecanico', iconKey: 'car'),
-    ServiceCategory(id: 'cat-2', name: 'Eletricista', slug: 'eletricista', iconKey: 'bolt'),
-    ServiceCategory(id: 'cat-3', name: 'Encanador', slug: 'encanador', iconKey: 'water'),
-    ServiceCategory(id: 'cat-4', name: 'Serralheiro', slug: 'serralheiro', iconKey: 'build'),
-    ServiceCategory(id: 'cat-5', name: 'Marceneiro', slug: 'marceneiro', iconKey: 'handyman'),
-    ServiceCategory(id: 'cat-6', name: 'Limpeza', slug: 'limpeza', iconKey: 'clean'),
-    ServiceCategory(id: 'cat-7', name: 'Tecnologia', slug: 'tecnologia', iconKey: 'computer'),
+    ServiceCategory(
+      id: 'cat-1',
+      name: 'Eletricista',
+      slug: 'eletricista',
+      iconKey: 'bolt',
+    ),
+    ServiceCategory(
+      id: 'cat-2',
+      name: 'Encanador',
+      slug: 'encanador',
+      iconKey: 'water',
+    ),
+    ServiceCategory(
+      id: 'cat-3',
+      name: 'Pintor',
+      slug: 'pintor',
+      iconKey: 'paint',
+    ),
+    ServiceCategory(
+      id: 'cat-4',
+      name: 'Pedreiro',
+      slug: 'pedreiro',
+      iconKey: 'build',
+    ),
+    ServiceCategory(
+      id: 'cat-5',
+      name: 'Diarista',
+      slug: 'diarista',
+      iconKey: 'clean',
+    ),
+    ServiceCategory(
+      id: 'cat-6',
+      name: 'Jardinagem',
+      slug: 'jardinagem',
+      iconKey: 'garden',
+    ),
   ];
+
+  static const _mechanicCategory = ServiceCategory(
+    id: 'cat-hidden-1',
+    name: 'Mecânico',
+    slug: 'mecanico',
+    iconKey: 'car',
+  );
+  static const _locksmithCategory = ServiceCategory(
+    id: 'cat-hidden-2',
+    name: 'Serralheiro',
+    slug: 'serralheiro',
+    iconKey: 'build',
+  );
 
   static final providers = <ProviderProfile>[
     ProviderProfile(
       id: 'provider-1',
       slug: 'auto-socorro-norte',
       displayName: 'Auto Socorro Norte',
-      category: categories[0],
+      category: _mechanicCategory,
       description: 'Atendimento automotivo rápido, transparente e com suporte emergencial.',
       city: 'Blumenau',
       state: 'SC',
@@ -39,7 +81,7 @@ class QaCatalogData {
       id: 'provider-2',
       slug: 'eletrica-do-vale',
       displayName: 'Elétrica do Vale',
-      category: categories[1],
+      category: categories[0],
       description: 'Instalações, manutenção residencial e atendimento de urgência.',
       city: 'Blumenau',
       state: 'SC',
@@ -59,7 +101,7 @@ class QaCatalogData {
       id: 'provider-3',
       slug: 'hidro-certo',
       displayName: 'Hidro Certo',
-      category: categories[2],
+      category: categories[1],
       description: 'Reparos hidráulicos, vazamentos e instalações com garantia.',
       city: 'Gaspar',
       state: 'SC',
@@ -77,7 +119,7 @@ class QaCatalogData {
       id: 'provider-4',
       slug: 'ferro-e-arte',
       displayName: 'Ferro & Arte Serralheria',
-      category: categories[3],
+      category: _locksmithCategory,
       description: 'Portões, estruturas e soluções sob medida para sua obra.',
       city: 'Indaial',
       state: 'SC',

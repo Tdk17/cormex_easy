@@ -30,7 +30,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
     if (environment.useQaData) {
       await Future<void>.delayed(const Duration(milliseconds: 350));
       return CatalogHomeData(
-        categories: QaCatalogData.categories,
+        categories: publicCatalogCategories(QaCatalogData.categories),
         providers: QaCatalogData.providers,
         bannerTitle: 'O serviço certo, perto de você.',
         bannerSubtitle:
@@ -57,10 +57,11 @@ class CatalogRepositoryImpl implements CatalogRepository {
       isFromCache = true;
     }
 
-    final categories = (json['categories'] as List? ?? [])
-        .whereType<Map>()
-        .map((e) => ServiceCategory.fromJson(e.cast<String, dynamic>()))
-        .toList();
+    final categories = publicCatalogCategories(
+      (json['categories'] as List? ?? [])
+          .whereType<Map>()
+          .map((e) => ServiceCategory.fromJson(e.cast<String, dynamic>())),
+    );
     final providers = (json['providers'] as List? ?? [])
         .whereType<Map>()
         .map((e) => ProviderProfile.fromJson(e.cast<String, dynamic>()))

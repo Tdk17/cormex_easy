@@ -21,6 +21,90 @@ class ServiceCategory {
   final String iconKey;
 }
 
+class _PublicCategoryRule {
+  const _PublicCategoryRule(this.label, this.aliases);
+
+  final String label;
+  final Set<String> aliases;
+}
+
+const _publicCategoryRules = <_PublicCategoryRule>[
+  _PublicCategoryRule('Eletricista', {'eletricista'}),
+  _PublicCategoryRule('Encanador', {'encanador', 'encanamento'}),
+  _PublicCategoryRule('Pintor', {'pintor', 'pintura'}),
+  _PublicCategoryRule('Pedreiro', {'pedreiro'}),
+  _PublicCategoryRule(
+    'Diarista',
+    {'diarista', 'limpeza', 'diarista-limpeza', 'limpeza-residencial'},
+  ),
+  _PublicCategoryRule('Jardinagem', {'jardinagem', 'jardineiro'}),
+];
+
+List<ServiceCategory> publicCatalogCategories(
+  Iterable<ServiceCategory> categories,
+) {
+  final available = categories.toList(growable: false);
+  final visible = <ServiceCategory>[];
+
+  for (final rule in _publicCategoryRules) {
+    ServiceCategory? match;
+    for (final category in available) {
+      final slug = _normalizeCategoryKey(category.slug);
+      final name = _normalizeCategoryKey(category.name);
+      if (rule.aliases.contains(slug) || rule.aliases.contains(name)) {
+        match = category;
+        break;
+      }
+    }
+    if (match == null) continue;
+    visible.add(
+      ServiceCategory(
+        id: match.id,
+        name: rule.label,
+        slug: match.slug,
+        iconKey: match.iconKey,
+      ),
+    );
+  }
+
+  return List.unmodifiable(visible);
+}
+
+String _normalizeCategoryKey(String value) {
+  var normalized = value.trim().toLowerCase();
+  const replacements = <String, String>{
+    'á': 'a',
+    'à': 'a',
+    'â': 'a',
+    'ã': 'a',
+    'ä': 'a',
+    'é': 'e',
+    'è': 'e',
+    'ê': 'e',
+    'ë': 'e',
+    'í': 'i',
+    'ì': 'i',
+    'î': 'i',
+    'ï': 'i',
+    'ó': 'o',
+    'ò': 'o',
+    'ô': 'o',
+    'õ': 'o',
+    'ö': 'o',
+    'ú': 'u',
+    'ù': 'u',
+    'û': 'u',
+    'ü': 'u',
+    'ç': 'c',
+  };
+  for (final replacement in replacements.entries) {
+    normalized = normalized.replaceAll(replacement.key, replacement.value);
+  }
+  return normalized
+      .replaceAll(RegExp('[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+}
+
 class ProviderProfile {
   const ProviderProfile({
     required this.id,
