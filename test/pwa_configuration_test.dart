@@ -65,7 +65,9 @@ void main() {
     expect(installer, contains('beforeinstallprompt'));
     expect(installer, contains('appinstalled'));
     expect(installer, contains('serviceWorker.register'));
-    expect(installer, contains('cormex_service_worker.js?v=5'));
+    expect(installer, contains('cormex_service_worker.js?v=6'));
+    final worker = File('web/cormex_service_worker.js').readAsStringSync();
+    expect(worker, contains("cache: 'no-store'"));
     expect(installer, contains("scope: './'"));
     expect(installer, isNot(contains('controllerchange')));
     final workflow = File('.github/workflows/deploy-pages.yml').readAsStringSync();

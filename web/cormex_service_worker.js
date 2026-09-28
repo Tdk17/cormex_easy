@@ -2,7 +2,7 @@ const scopeKey = new URL(self.registration.scope).pathname
   .replace(/[^a-z0-9]+/gi, '-')
   .replace(/^-+|-+$/g, '') || 'root';
 const cachePrefix = 'cormex-easy-' + scopeKey + '-';
-const cacheName = cachePrefix + 'offline-v5';
+const cacheName = cachePrefix + 'offline-v6';
 const shellAssets = [
   './',
   './index.html',
@@ -19,7 +19,10 @@ async function fetchWithTimeout(request, timeoutMs = 4500) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(request, { signal: controller.signal });
+    return await fetch(request, {
+      signal: controller.signal,
+      cache: 'no-store',
+    });
   } finally {
     clearTimeout(timeout);
   }
