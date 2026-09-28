@@ -1,7 +1,26 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
+import '../../../core/platform/whatsapp_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/catalog_models.dart';
+
+Future<void> openProviderWhatsApp(
+  BuildContext context,
+  ProviderProfile provider,
+) async {
+  final opened = await launchWhatsApp(
+    phone: provider.whatsapp,
+    message:
+        'Olá, ${provider.displayName}! Encontrei seu perfil no CormeX Easy e gostaria de saber mais sobre seus serviços.',
+  );
+  if (!opened && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Não foi possível abrir o WhatsApp.')),
+    );
+  }
+}
 
 IconData categoryIcon(String key) => switch (key) {
       'car' => Icons.car_repair,
@@ -153,12 +172,13 @@ class CategoryTile extends StatelessWidget {
   }
 }
 
-class ProviderCard extends StatelessWidget {
+class ProviderCard extends StatefulWidget {
   const ProviderCard({
     required this.provider,
     required this.isFavorite,
     required this.onOpen,
     required this.onFavorite,
+    required this.onWhatsApp,
     super.key,
   });
 
@@ -166,181 +186,467 @@ class ProviderCard extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback onOpen;
   final VoidCallback onFavorite;
+  final VoidCallback onWhatsApp;
+
+  @override
+  State<ProviderCard> createState() => _ProviderCardState();
+}
+
+class _ProviderCardState extends State<ProviderCard> {
+  bool _showBack = false;
+
+  void _flip() => setState(() => _showBack = !_showBack);
 
   @override
   Widget build(BuildContext context) {
-    final pro = provider.isPro;
+    final provider = widget.provider;
     return Semantics(
       button: true,
-      label: 'Abrir perfil de ${provider.displayName}',
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: pro ? AppColors.gold : const Color(0xFFE8DEE1),
-            width: pro ? 1.6 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: (pro ? AppColors.wine : AppColors.ink)
-                  .withValues(alpha: pro ? .14 : .07),
-              blurRadius: pro ? 30 : 22,
-              offset: const Offset(0, 12),
-            ),
-          ],
+      label: _showBack
+          ? 'Serviços de ${provider.displayName}. Toque para voltar.'
+          : 'Informações de ${provider.displayName}. Toque para ver os serviços.',
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(end: _showBack ? 1 : 0),
+        duration: const Duration(milliseconds: 460),
+        curve: Curves.easeInOutCubic,
+        builder: (context, value, child) {
+          final angle = value * math.pi;
+          final showingBack = value >= .5;
+          final face = showingBack ? _buildBack() : _buildFront();
+          return Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, .0012)
+              ..rotateY(angle),
+            child: showingBack
+                ? Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.rotationY(math.pi),
+                    child: face,
+                  )
+                : face,
+          );
+        },
+      ),
+    );
+  }
+
+  BoxDecoration _decoration({bool back = false}) {
+    final pro = widget.provider.isPro;
+    return BoxDecoration(
+      color: Colors.white,
+      gradient: back
+          ? const LinearGradient(
+              colors: [Colors.white, Color(0xFFFFF7F2)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            )
+          : null,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(
+        color: pro ? AppColors.gold : const Color(0xFFE8DEE1),
+        width: pro ? 1.6 : 1,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: (pro ? AppColors.wine : AppColors.ink)
+              .withValues(alpha: pro ? .14 : .07),
+          blurRadius: pro ? 30 : 22,
+          offset: const Offset(0, 12),
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onOpen,
+      ],
+    );
+  }
+
+  Widget _buildFront() {
+    final provider = widget.provider;
+    final serviceArea = provider.serviceArea.isEmpty
+        ? '${provider.city} e região'
+        : provider.serviceArea;
+    return Container(
+      decoration: _decoration(),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _flip,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ProviderPhoto(provider: provider),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.transparent, Color(0xB0000000)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: [.38, 1],
+                        ),
+                      ),
+                    ),
+                    if (provider.isPro)
+                      const Positioned(
+                        left: 14,
+                        top: 14,
+                        child: _Badge(
+                          icon: Icons.workspace_premium,
+                          label: 'PRO • DESTAQUE',
+                        ),
+                      ),
+                    Positioned(
+                      right: 10,
+                      top: 10,
+                      child: Material(
+                        color: Colors.white.withValues(alpha: .94),
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          onPressed: widget.onFavorite,
+                          tooltip: widget.isFavorite
+                              ? 'Remover dos favoritos'
+                              : 'Favoritar',
+                          visualDensity: VisualDensity.compact,
+                          icon: Icon(
+                            widget.isFavorite
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: widget.isFavorite
+                                ? AppColors.wine
+                                : AppColors.muted,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 14,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              provider.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 19,
+                                shadows: [Shadow(blurRadius: 8)],
+                              ),
+                            ),
+                          ),
+                          if (provider.isVerified)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 6, bottom: 2),
+                              child: Icon(
+                                Icons.verified,
+                                color: Color(0xFF65B8FF),
+                                size: 20,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${provider.category.name} • ${provider.providerType}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.wine,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        if (provider.isOpen24Hours)
+                          const _StatusPill(label: '24 horas'),
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      provider.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 13,
+                        height: 1.25,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _InfoLine(
+                      icon: Icons.location_on_outlined,
+                      text: '${provider.city} - ${provider.state}',
+                      trailing: provider.distanceKm == null
+                          ? null
+                          : '${provider.distanceKm!.toStringAsFixed(1)} km',
+                    ),
+                    const SizedBox(height: 5),
+                    _InfoLine(
+                      icon: Icons.near_me_outlined,
+                      text: 'Atende: $serviceArea',
+                    ),
+                    const SizedBox(height: 8),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.sync, size: 16, color: AppColors.wine),
+                        SizedBox(width: 5),
+                        Text(
+                          'Toque para ver serviços',
+                          style: TextStyle(
+                            color: AppColors.wine,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBack() {
+    final provider = widget.provider;
+    final services = provider.services.isEmpty
+        ? <String>[provider.category.name]
+        : provider.services;
+    final visibleServices = services.take(3).toList();
+    final hiddenServices = services.length - visibleServices.length;
+    final serviceArea = provider.serviceArea.isEmpty
+        ? '${provider.city} e região'
+        : provider.serviceArea;
+
+    return Container(
+      decoration: _decoration(back: true),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _flip,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      ProviderPhoto(provider: provider),
-                      const DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.transparent, Color(0xA8000000)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            stops: [.42, 1],
-                          ),
-                        ),
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: const BoxDecoration(
+                        color: AppColors.wine,
+                        shape: BoxShape.circle,
                       ),
-                      if (pro)
-                        const Positioned(
-                          left: 14,
-                          top: 14,
-                          child: _Badge(
-                            icon: Icons.workspace_premium,
-                            label: 'PRO • DESTAQUE',
+                      child: Icon(
+                        categoryIcon(provider.category.iconKey),
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'SERVIÇOS OFERECIDOS',
+                            style: TextStyle(
+                              color: AppColors.wine,
+                              fontSize: 11,
+                              letterSpacing: .65,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
+                          const SizedBox(height: 2),
+                          Text(
+                            provider.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _flip,
+                      tooltip: 'Voltar para as informações',
+                      icon: const Icon(Icons.close, color: AppColors.muted),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                for (final service in visibleServices)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 9),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          color: AppColors.success,
+                          size: 19,
                         ),
-                      Positioned(
-                        right: 10,
-                        top: 10,
-                        child: Material(
-                          color: Colors.white.withValues(alpha: .94),
-                          shape: const CircleBorder(),
-                          child: IconButton(
-                            onPressed: onFavorite,
-                            tooltip: isFavorite
-                                ? 'Remover dos favoritos'
-                                : 'Favoritar',
-                            visualDensity: VisualDensity.compact,
-                            icon: Icon(
-                              isFavorite
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: isFavorite
-                                  ? AppColors.wine
-                                  : AppColors.muted,
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            service,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                if (hiddenServices > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 9, left: 28),
+                    child: Text(
+                      '+ $hiddenServices ${hiddenServices == 1 ? 'outro serviço' : 'outros serviços'}',
+                      style: const TextStyle(
+                        color: AppColors.wine,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
                       ),
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        bottom: 14,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                provider.displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 19,
-                                  shadows: [Shadow(blurRadius: 8)],
-                                ),
-                              ),
-                            ),
-                            if (provider.isVerified)
-                              const Padding(
-                                padding: EdgeInsets.only(left: 6, bottom: 2),
-                                child: Icon(
-                                  Icons.verified,
-                                  color: Color(0xFF65B8FF),
-                                  size: 20,
-                                ),
-                              ),
-                          ],
+                    ),
+                  ),
+                const Divider(height: 20),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.near_me_outlined,
+                      color: AppColors.wine,
+                      size: 19,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Atende em $serviceArea',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 13,
+                          height: 1.25,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed:
+                        provider.whatsapp.isEmpty ? null : widget.onWhatsApp,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF128C4A),
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.chat_rounded),
+                    label: const Text('Entrar em contato no WhatsApp'),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${provider.category.name} • ${provider.providerType}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: AppColors.muted,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          if (provider.isOpen24Hours)
-                            const _StatusPill(label: '24 horas'),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on_outlined,
-                            size: 18,
-                            color: AppColors.wine,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              '${provider.city} - ${provider.state}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: AppColors.muted,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          if (provider.distanceKm != null)
-                            Text(
-                              '${provider.distanceKm!.toStringAsFixed(1)} km',
-                              style: const TextStyle(
-                                color: AppColors.wine,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: widget.onOpen,
+                    icon: const Icon(Icons.person_outline, size: 18),
+                    label: const Text('Ver perfil completo'),
                   ),
+                ),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.sync, size: 15, color: AppColors.muted),
+                    SizedBox(width: 5),
+                    Text(
+                      'Toque fora dos botões para voltar',
+                      style: TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine({required this.icon, required this.text, this.trailing});
+
+  final IconData icon;
+  final String text;
+  final String? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 17, color: AppColors.wine),
+        const SizedBox(width: 5),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        if (trailing != null)
+          Text(
+            trailing!,
+            style: const TextStyle(
+              color: AppColors.wine,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+      ],
     );
   }
 }

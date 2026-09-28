@@ -2,7 +2,7 @@ const scopeKey = new URL(self.registration.scope).pathname
   .replace(/[^a-z0-9]+/gi, '-')
   .replace(/^-+|-+$/g, '') || 'root';
 const cachePrefix = 'cormex-easy-' + scopeKey + '-';
-const cacheName = cachePrefix + 'offline-v4';
+const cacheName = cachePrefix + 'offline-v5';
 const shellAssets = [
   './',
   './index.html',

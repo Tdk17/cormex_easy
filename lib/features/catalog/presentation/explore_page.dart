@@ -129,14 +129,17 @@ class _ExplorePageState extends State<ExplorePage> {
                         crossAxisCount: columns,
                         crossAxisSpacing: 18,
                         mainAxisSpacing: 18,
-                        mainAxisExtent: 326,
+                        mainAxisExtent: 390,
                       ),
                       itemBuilder: (context, index) {
                         final provider = providers[index];
                         return ProviderCard(
+                          key: ValueKey(provider.id),
                           provider: provider,
                           isFavorite: store.isFavorite(provider.id),
                           onFavorite: () => store.toggleFavorite(provider.id),
+                          onWhatsApp: () =>
+                              openProviderWhatsApp(context, provider),
                           onOpen: () => context.go('/prestador/${provider.slug}'),
                         );
                       },

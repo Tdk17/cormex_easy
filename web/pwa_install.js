@@ -17,7 +17,7 @@
   async function registerCormexWorker() {
     if (!('serviceWorker' in navigator)) return;
     try {
-      const workerUrl = new URL('cormex_service_worker.js?v=4', document.baseURI);
+      const workerUrl = new URL('cormex_service_worker.js?v=5', document.baseURI);
       const registration = await navigator.serviceWorker.register(workerUrl, { scope: './' });
       if (registration.waiting) registration.waiting.postMessage('SKIP_WAITING');
       await registration.update();

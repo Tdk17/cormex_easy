@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals/signals_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_environment.dart';
 import '../../../core/di/injection.dart';
@@ -58,14 +57,8 @@ class _ProviderPageState extends State<ProviderPage> {
 
   Future<void> _openWhatsApp(ProviderProfile provider) async {
     await _track('whatsapp_click', provider);
-    final message = Uri.encodeComponent('Olá! Encontrei seu serviço pelo CormeX Easy.');
-    final phone = provider.whatsapp.replaceAll(RegExp(r'\D'), '');
-    final uri = Uri.parse('https://wa.me/$phone?text=$message');
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível abrir o WhatsApp.')),
-      );
-    }
+    if (!mounted) return;
+    await openProviderWhatsApp(context, provider);
   }
 
   Future<void> _share(ProviderProfile provider) async {

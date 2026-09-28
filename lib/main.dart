@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app.dart';
 import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/brand_logo.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,32 +52,7 @@ class _StartupSplash extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Color(0xFF7A1830),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x557A1830),
-                      blurRadius: 36,
-                      spreadRadius: 8,
-                    ),
-                  ],
-                ),
-                child: SizedBox.square(
-                  dimension: 82,
-                  child: Center(
-                    child: Text(
-                      'Cx',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              CormexMark(size: 82, onDark: true),
               SizedBox(height: 22),
               Text(
                 'CormeX Easy',

@@ -10,7 +10,7 @@ void main() {
     ) as Map<String, dynamic>;
 
     expect(manifest['name'], 'CormeX Easy');
-    expect(manifest['short_name'], 'CormeX');
+    expect(manifest['short_name'], 'CormeX Easy');
     expect(manifest['id'], './');
     expect(manifest['start_url'], './');
     expect(manifest['scope'], './');
@@ -65,7 +65,7 @@ void main() {
     expect(installer, contains('beforeinstallprompt'));
     expect(installer, contains('appinstalled'));
     expect(installer, contains('serviceWorker.register'));
-    expect(installer, contains('cormex_service_worker.js?v=4'));
+    expect(installer, contains('cormex_service_worker.js?v=5'));
     expect(installer, contains("scope: './'"));
     expect(installer, isNot(contains('controllerchange')));
     final workflow = File('.github/workflows/deploy-pages.yml').readAsStringSync();

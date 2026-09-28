@@ -20,32 +20,7 @@ class BrandLogo extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: onDark ? Colors.white : AppColors.wine,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: onDark
-                  ? const [
-                      BoxShadow(
-                        color: Color(0x33000000),
-                        blurRadius: 14,
-                        offset: Offset(0, 5),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Text(
-              'Cx',
-              style: TextStyle(
-                color: onDark ? AppColors.wineDark : Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-              ),
-            ),
-          ),
+          CormexMark(onDark: onDark),
           if (!compact) ...[
             const SizedBox(width: 10),
             Column(
@@ -67,13 +42,80 @@ class BrandLogo extends StatelessWidget {
                     letterSpacing: 2.2,
                     fontWeight: FontWeight.w700,
                     fontSize: 9,
-                    color: onDark ? AppColors.wineSoft : AppColors.wine,
+                    color: onDark ? AppColors.gold : AppColors.wine,
                   ),
                 ),
               ],
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class CormexMark extends StatelessWidget {
+  const CormexMark({super.key, this.size = 40, this.onDark = false});
+
+  final double size;
+  final bool onDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.wineSoft, AppColors.wine, AppColors.wineDark],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(size * .28),
+          border: Border.all(
+            color: onDark
+                ? AppColors.gold.withValues(alpha: .78)
+                : AppColors.wineDark.withValues(alpha: .12),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.wine.withValues(alpha: onDark ? .48 : .24),
+              blurRadius: size * .34,
+              offset: Offset(0, size * .12),
+            ),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(
+              Icons.location_on_rounded,
+              color: Colors.white,
+              size: size * .72,
+            ),
+            Positioned(
+              top: size * .22,
+              child: Container(
+                width: size * .29,
+                height: size * .29,
+                decoration: BoxDecoration(
+                  color: AppColors.wineDark,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.gold,
+                    width: size * .025,
+                  ),
+                ),
+                child: Icon(
+                  Icons.home_repair_service_rounded,
+                  color: AppColors.gold,
+                  size: size * .17,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

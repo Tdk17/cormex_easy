@@ -55,14 +55,17 @@ class FavoritesPage extends StatelessWidget {
                         crossAxisCount: columns,
                         crossAxisSpacing: 18,
                         mainAxisSpacing: 18,
-                        mainAxisExtent: 326,
+                        mainAxisExtent: 390,
                       ),
                       itemBuilder: (context, index) {
                         final provider = providers[index];
                         return ProviderCard(
+                          key: ValueKey(provider.id),
                           provider: provider,
                           isFavorite: true,
                           onFavorite: () => store.toggleFavorite(provider.id),
+                          onWhatsApp: () =>
+                              openProviderWhatsApp(context, provider),
                           onOpen: () => context.go('/prestador/${provider.slug}'),
                         );
                       },
